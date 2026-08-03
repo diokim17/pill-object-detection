@@ -9,7 +9,7 @@
 | Name | GitHub | Role |
 |------|---------|------|
 | 김도영 | [@diokim17](https://github.com/diokim17) |  |
-| 김민협 | [@]() |  |
+| 김민협 | [@seolwoom](https://github.com/seolwoom) |  |
 | 이원영 | [@1young-codes](https://github.com/1young-codes) |  |
 | 이재웅 | [@mitguchin](https://github.com/mitguchin) |  |
 | 황세희 | [@hwangsiiii](https://github.com/hwangsiiii) |  |
