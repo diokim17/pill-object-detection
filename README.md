@@ -50,20 +50,19 @@
 pill-object-detection/
 │
 ├── notebooks/
-│   ├── 01_eda.ipynb
-│   ├── 02_baseline.ipynb
-│   ├── 03_train.ipynb
-│   ├── 04_evaluation.ipynb
-│   └── 05_inference.ipynb
+│   ├── ipynb   # 실행 파일
+│   
+│
+├── src/
+│   ├── py    # 공통 모듈
 │
 ├── outputs/
-│   ├── figures/
-│   ├── predictions/
-│   └── submissions/
+│   └── submissions/    # 캐글 제출 결과 파일
 │
 ├── docs/
+│   └── pdf    # 최종 제출 보고서 또는 슬라이드
 │
-├── requirements.txt
+├── requirements.txt    # 환경설정
 └── README.md
 ```
 
