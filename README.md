@@ -49,20 +49,33 @@
 ```text
 pill-object-detection/
 │
-├── notebooks/
-│   ├── ipynb   # 실행 파일
-│   
+├── notebooks/              # 코랩 파일
+│   └── ipynb
 │
-├── src/
-│   ├── py    # 공통 모듈
+├── data/
+│   └── processed/
+│       ├── images/
+│       │   ├── train/
+│       │   └── val/
+│       │
+│       ├── labels/
+│       │   ├── train/
+│       │   └── val/
+│       │
+│       └── data.yaml
+│
+├── src/                  # 공통 모듈
+│   └── py
 │
 ├── outputs/
-│   └── submissions/    # 캐글 제출 결과 파일
+│   ├── submissions/      # Kaggle 제출 파일
+│   ├── predictions/      # 추론 결과
+│   └── checkpoints/      # 모델 가중치
 │
 ├── docs/
-│   └── pdf    # 최종 제출 보고서 또는 슬라이드
+│   └── pdf/              # 최종 보고서 및 발표 자료
 │
-├── requirements.txt    # 환경설정
+├── requirements.txt
 └── README.md
 ```
 
