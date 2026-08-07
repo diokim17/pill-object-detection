@@ -53,7 +53,7 @@ pill-object-detection/
 │   └── ipynb
 │
 ├── data/
-│   ├── dataset/
+│   ├── data/
 │   │   ├── raw_data/       # 캐글 원본 데이터
 │   │   └── cleaning_data/  # 정제된 데이터
 │   │
