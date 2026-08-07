@@ -53,7 +53,11 @@ pill-object-detection/
 │   └── ipynb
 │
 ├── data/
-│   └── processed/
+│   ├── data/
+│   │   ├── raw_data/       # 캐글 원본 데이터
+│   │   └── cleaning_data/  # 정제된 데이터
+│   │
+│   └── processed/          # YOLO 형식
 │       ├── images/
 │       │   ├── train/
 │       │   └── val/
