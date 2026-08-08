@@ -16,7 +16,7 @@ paths:
   # 추후 Google Drive 사용 시 아래 값만 변경
   # project_root: "/content/drive/MyDrive/pill-object-detection"
 
-  dataset_root: "${paths.project_root}/data/data/cleaning_data"
+  dataset_root: ${paths.project_root}/data/dataset/cleaning_data
 
   checkpoint_dir: "${paths.project_root}/outputs/checkpoints"
   prediction_dir: "${paths.project_root}/outputs/predictions"
