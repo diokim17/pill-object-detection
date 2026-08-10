@@ -16,7 +16,7 @@ paths:
   # 추후 Google Drive 사용 시 아래 값만 변경
   # project_root: "/content/drive/MyDrive/pill-object-detection"
 
-  dataset_root: ${paths.project_root}/data/dataset/cleaning_data
+  dataset_root: ${paths.project_root}/data/dataset/cleaning_data/sprint_ai_project1_data_260809_baseline_dataset
 
   checkpoint_dir: "${paths.project_root}/outputs/checkpoints"
   prediction_dir: "${paths.project_root}/outputs/predictions"
@@ -63,8 +63,8 @@ model:
   trainable_backbone_layers: 3
 
   # Faster R-CNN 내부 resize
-  min_size: 800
-  max_size: 1333
+  min_size: 640
+  max_size: 640
 
 
 # ============================================================
@@ -98,7 +98,7 @@ wandb:
   project: "pill-object-detection"
 
   # W&B 팀명
-  entity: null
+  entity: diokim17
 
   # null이면 W&B에서 자동 이름 생성
   run_name: "faster-rcnn-baseline"
