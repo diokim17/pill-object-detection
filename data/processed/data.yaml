@@ -1,4 +1,4 @@
-path: C:\Users\soulf\Documents\codeit\pill-object-detection\data\processed
+gipath: C:\Users\soulf\Documents\codeit\pill-object-detection\data\processed
 train: images/train
 val: images/val
 test: images/test
