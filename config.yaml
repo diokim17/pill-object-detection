@@ -1,0 +1,111 @@
+# ============================================================
+# Project
+# ============================================================
+project:
+  name: pill-object-detection
+  seed: 42
+
+
+# ============================================================
+# Path
+# ============================================================
+paths:
+  # 로컬
+  project_root: "."
+
+  # 추후 Google Drive 사용 시 아래 값만 변경
+  # project_root: "/content/drive/MyDrive/pill-object-detection"
+
+  dataset_root: ${paths.project_root}/data/dataset/cleaning_data/sprint_ai_project1_data_260809_baseline_dataset
+
+  checkpoint_dir: "${paths.project_root}/outputs/checkpoints"
+  prediction_dir: "${paths.project_root}/outputs/predictions"
+  submission_dir: "${paths.project_root}/outputs/submissions"
+
+
+# ============================================================
+# Dataset
+# ============================================================
+dataset:
+  image_dir_name: "train_images"
+  annotation_dir_name: "train_annotations"
+
+  label_offset: 1
+
+  strict: false
+  validate_image_size: true
+
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+
+
+# ============================================================
+# DataLoader
+# ============================================================
+dataloader:
+  batch_size: 4
+  num_workers: 0
+  pin_memory: true
+
+
+# ============================================================
+# Model
+# ============================================================
+model:
+  name: "fasterrcnn_resnet50_fpn"
+
+  # torchvision COCO pretrained weight
+  pretrained: true
+
+  # 0~5
+  # 5 = 전체 backbone 학습
+  trainable_backbone_layers: 3
+
+  # Faster R-CNN 내부 resize
+  min_size: 640
+  max_size: 640
+
+
+# ============================================================
+# Training
+# ============================================================
+train:
+  epochs: 20
+
+  optimizer: "sgd"
+
+  learning_rate: 0.005
+  momentum: 0.9
+  weight_decay: 0.0005
+
+  scheduler:
+    type: "step"
+    step_size: 5
+    gamma: 0.1
+
+  gradient_clip: null
+
+  save_best: true
+
+
+# ============================================================
+# W&B
+# ============================================================
+wandb:
+  enabled: true
+
+  project: "pill-object-detection"
+
+  # W&B 팀명
+  entity: diokim17
+
+  # null이면 W&B에서 자동 이름 생성
+  run_name: "faster-rcnn-baseline"
+
+  # online / offline / disabled
+  mode: "online"
+
+  tags:
+    - "faster-rcnn"
+    - "baseline"
