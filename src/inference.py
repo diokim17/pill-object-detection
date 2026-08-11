@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import torch
-from PIL import Image
+from PIL import Image, ImageOps
 from torchvision.transforms import functional as F
 
 
@@ -33,6 +33,88 @@ def xyxy_to_xywh(box):
 # 이미지 파일명에서 image_id 추출
 def get_image_id(image_path):
     return int(Path(image_path).stem)
+
+# Faster R-CNN 입력용 letterbox 전처리
+def letterbox_image(
+    image,
+    image_size=640,
+):
+    image = ImageOps.exif_transpose(image).convert("RGB")
+
+    original_width, original_height = image.size
+
+    scale = min(
+        image_size / original_width,
+        image_size / original_height,
+    )
+
+    resized_width = int(
+        round(original_width * scale)
+    )
+    resized_height = int(
+        round(original_height * scale)
+    )
+
+    resized = image.resize(
+        (resized_width, resized_height),
+        Image.Resampling.BILINEAR,
+    )
+
+    pad_left = (
+        image_size - resized_width
+    ) // 2
+
+    pad_top = (
+        image_size - resized_height
+    ) // 2
+
+    canvas = Image.new(
+        "RGB",
+        (image_size, image_size),
+        color=(0, 0, 0),
+    )
+
+    canvas.paste(
+        resized,
+        (pad_left, pad_top),
+    )
+
+    image_tensor = F.to_tensor(canvas)
+
+    metadata = {
+        "original_width": original_width,
+        "original_height": original_height,
+        "scale": scale,
+        "pad_left": pad_left,
+        "pad_top": pad_top,
+    }
+
+    return image_tensor, metadata
+
+
+# 640x640 기준 bbox를 원본 이미지 좌표로 복원
+def restore_boxes_to_original(
+    boxes,
+    metadata,
+):
+    boxes = boxes.clone()
+
+    boxes[:, [0, 2]] -= metadata["pad_left"]
+    boxes[:, [1, 3]] -= metadata["pad_top"]
+
+    boxes /= metadata["scale"]
+
+    boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(
+        0,
+        metadata["original_width"],
+    )
+
+    boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(
+        0,
+        metadata["original_height"],
+    )
+
+    return boxes
 
 
 # 공통 prediction을 submission row 형식으로 변환
@@ -118,28 +200,65 @@ def inference_faster_rcnn(
     model,
     image_paths,
     device,
+    image_size=640,
 ):
     predictions = []
 
     model.eval()
 
-    with torch.no_grad():
-        for image_path in image_paths:
-            image = Image.open(image_path).convert("RGB")
-            image_tensor = F.to_tensor(image).to(device)
+    with torch.inference_mode():
 
-            output = model([image_tensor])[0]
+        for image_path in image_paths:
+
+            with Image.open(image_path) as image:
+                image_tensor, metadata = (
+                    letterbox_image(
+                        image,
+                        image_size=image_size,
+                    )
+                )
+
+            output = model(
+                [image_tensor.to(device)]
+            )[0]
+
+            boxes = (
+                output["boxes"]
+                .detach()
+                .cpu()
+            )
+
+            labels = (
+                output["labels"]
+                .detach()
+                .cpu()
+            )
+
+            scores = (
+                output["scores"]
+                .detach()
+                .cpu()
+            )
+
+            if len(boxes) > 0:
+                boxes = restore_boxes_to_original(
+                    boxes,
+                    metadata,
+                )
 
             predictions.append(
                 {
-                    "image_id": get_image_id(image_path),
-                    "boxes": output["boxes"].cpu().tolist(),
-                    "labels": output["labels"].cpu().tolist(),
-                    "scores": output["scores"].cpu().tolist(),
+                    "image_id": get_image_id(
+                        image_path
+                    ),
+                    "boxes": boxes.tolist(),
+                    "labels": labels.tolist(),
+                    "scores": scores.tolist(),
                 }
             )
 
     return predictions
+
 
 # YOLO 모델 추론
 def inference_yolo():
