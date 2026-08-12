@@ -1,82 +1,97 @@
 """
 pill_transforms.py
-===================
+==================
 
-경구약제(알약) Object Detection 프로젝트용 전처리 / 증강 통합 모듈입니다.
+경구약제(알약) Object Detection 프로젝트 공용 전처리 / 증강 모듈입니다.
+팀 노트북 4개가 **이 파일 하나만** import 하면 됩니다.
 
-팀 노트북 4개가 모두 이 파일 하나만 import 하면 되도록 구성했습니다.
+    ┌──────────────────────────────────────┬────────────────────────────────────┐
+    │ 노트북                               │ 이 모듈에서 쓰는 것                │
+    ├──────────────────────────────────────┼────────────────────────────────────┤
+    │ pill_detection_dataset.ipynb         │ get_train_transforms()             │
+    │ yolo11s_baseline_cp.ipynb            │ configure() / preflight() /        │
+    │                                      │ build_augmented_yolo_dataset()     │
+    │ base_model_faster-rcnn_train.ipynb   │ get_frcnn_train_transform()        │
+    │                                      │ get_frcnn_eval_transform()         │
+    │ base_model_faster-rcnn_predict.ipynb │ get_frcnn_eval_transform()         │
+    │                                      │ prepare_image_for_inference()      │
+    │                                      │ undo_letterbox_boxes()             │
+    └──────────────────────────────────────┴────────────────────────────────────┘
 
-    ┌─────────────────────────────────────┬──────────────────────────────────┐
-    │ 노트북                              │ 이 모듈에서 쓰는 것              │
-    ├─────────────────────────────────────┼──────────────────────────────────┤
-    │ pill_detection_dataset.ipynb        │ get_train_transforms()           │
-    │ base_model_faster-rcnn_train.ipynb  │ get_train_transform()            │
-    │                                     │ get_eval_transform()             │
-    │ yolo11s_baseline.ipynb              │ build_augmented_yolo_dataset()   │
-    │ 02_baseline.ipynb                   │ (Copy&Paste 원본 — 여기로 이식)  │
-    └─────────────────────────────────────┴──────────────────────────────────┘
+구조 (AI Hub 팀 공유 가이드와 동일한 실행 흐름)
+------------------------------------------------
+가이드의 `--preflight → --execute` 2단계 원칙을 그대로 따릅니다.
 
-두 갈래 구조
-------------
-**[A] 온라인 transform** — PyTorch Dataset 에 붙여 매 배치마다 적용
-      Albumentations 기반. `PillDetectionDataset(transforms=...)` 에 그대로 전달.
-      Faster R-CNN 처럼 DataLoader 로 학습하는 모델용입니다.
+    Part 0  설정          환경 자동 감지 · 고정 배경색 · 경로(configure)
+    Part 1  I/O           한글 경로 안전 read/write
+    Part 2  전처리        Shades-of-Gray WB + CLAHE (train/val/test/추론 공통)
+    Part 3  온라인 transform (Albumentations)  — Faster R-CNN 계열
+    Part 3.5 Faster R-CNN 어댑터 · 추론 letterbox 복원
+    Part 4  오프라인 기하 증강 (cv2 only)
+    Part 5  컷아웃 · 크롭 라이브러리
+    Part 6  Copy & Paste · YOLO 증강 데이터셋 빌더
+    Part 7  검수 시각화
+    Part 8  ★ preflight / execute / CLI
 
-**[B] 오프라인 증강** — 디스크에 증강된 YOLO 데이터셋을 미리 만들어 둠
-      `cv2` + `numpy` 만 사용 (albumentations 불필요).
-      Ultralytics YOLO 는 폴더를 통째로 읽으므로 이 방식이 맞습니다.
-      `02_baseline.ipynb` 의 기하 증강 + Copy & Paste 를 그대로 이식했습니다.
+★ 배경색 고정
+--------------
+Copy & Paste 합성 배경은 더 이상 무작위로 만들지 않습니다.
+팀 crop 산출물(`K-003351-...png`)의 알약 바깥 픽셀에서 실측한 값을
+`PILL_BG_*` 상수로 **고정**했습니다.
 
-기본값 (요청 반영)
+    RGB (105, 110, 128) / BGR (128, 110, 105) / HEX #696E80
+    HSV(OpenCV)  H=113  S=44  V=128
+    채널 노이즈 std ≈ 5.0,  밝기 기울기 ≈ ±6 (V p5~p95 = 119~134)
+
+letterbox 패딩도 같은 색으로 채웁니다(`USE_BG_PAD=True`). 검정 패딩을 쓰면
+학습 이미지에 실제 촬영에 없는 색이 들어가기 때문입니다.
+
+Colab 빠른 사용법
 ------------------
-- `DEFAULT_GEOM_MULT = 3`   → train 이미지 1장당 최종 3장 (원본 1 + 증강 2)
-- `DEFAULT_N_SYNTH   = 600` → Copy & Paste 합성 이미지 600장
-- **CLAHE 는 확률이 아니라 전 이미지에 항상 적용됩니다.**
-  (train / val / test / 추론까지 동일 — 전처리를 학습에만 걸면 분포가 어긋납니다)
-- 위 두 숫자는 `yolo11s_baseline.ipynb` 에서 인자로 덮어쓸 수 있습니다.
+    from google.colab import drive; drive.mount("/content/drive")
+
+    import sys; sys.path.insert(0, "/content/drive/MyDrive/.../pill-object-detection/src")
+    import pill_transforms as pt
+
+    pt.configure()                 # 경로 자동 감지 + 출력
+    pt.preflight()                 # 1단계: 사전검증 (파일을 만들지 않음)
+    aug_yaml = pt.build_augmented_yolo_dataset()   # 2단계: 실제 생성
+
+터미널에서도 동일합니다.
+
+    python pill_transforms.py --preflight
+    python pill_transforms.py --execute --geom-mult 3 --n-synth 600
+    python pill_transforms.py --bg-check /path/to/crop.png
+    python pill_transforms.py --selftest
+
+기본값
+------
+    DEFAULT_GEOM_MULT = 3   train 1장 → 최종 3장 (원본 1 + 증강 2)
+    DEFAULT_N_SYNTH   = 600 Copy & Paste 합성 이미지 수 (200 단위로 조절)
+    CLAHE_CLIP        = 5.0 전 이미지 항상 적용 (학습·평가·추론 동일)
+    CP_BG_MODE        = "fixed"  ★ 고정 배경색 사용
+    USE_FLIP          = False    각인이 뒤집히면 클래스 정보 손상
 
 반영한 EDA / Dataset 특성
 --------------------------
-1. 원본 해상도가 976 x 1280 으로 전부 동일 → 종횡비를 왜곡하지 않는
-   LongestMaxSize + Pad(letterbox) 전략
-2. bbox 는 대부분 정사각형에 가깝고(AR 0.8~1.2 약 64%) 평균 area_ratio 약 5.6%
-   → 작은 객체 보존을 위해 erosion_rate 를 낮게
-3. 배경(back_color)·조명(light_color)이 전 샘플 동일 → 색상/명암 증강 필수
-4. 촬영 각도 70/75/90도 → 온라인은 소각도, 오프라인은 알약 회전 불변성을 살려 ±180도
-5. 클래스 불균형 51배 → Copy & Paste 로 희소 클래스 표본을 직접 늘림
-6. 각인(print_front/back)이 클래스 정보 → **flip 기본 off**, 블러 최소
-
-사용 예
--------
-    # [A] Faster R-CNN / PillDetectionDataset
-    from pill_transforms import get_train_transform, get_eval_transform
-    train_transforms = get_train_transform(image_size=640)
-    eval_transforms  = get_eval_transform(image_size=640)
-
-    # [B] YOLO — 증강 데이터셋을 만들고 그 data.yaml 로 학습
-    from pill_transforms import build_augmented_yolo_dataset
-    aug_yaml = build_augmented_yolo_dataset(
-        src_root="../data/processed",
-        dst_root="../data/processed_aug",
-        geom_mult=3,     # ← 노트북에서 조절
-        n_synth=600,     # ← 노트북에서 조절
-        # ★ Copy&Paste 재료를 미리 잘라 둔 크롭 폴더에서 가져오기
-        crops_dir="/content/drive/MyDrive/.../cropped_pills_review",
-    )
-
-    # 또는 모듈 전역으로 한 번만 지정 (아래 '경로 설정' 블록 참고)
-    import pill_transforms as pt
-    pt.CROPPED_PILLS_DIR = "/content/drive/MyDrive/.../cropped_pills_review"
+1. 원본 해상도 976x1280 동일 → 비율을 왜곡하지 않는 LongestMaxSize + Pad(letterbox)
+2. bbox 가 정사각형에 가깝고 평균 area_ratio 약 5.6% → erosion_rate 를 낮게
+3. 배경·조명이 전 샘플 동일 → 색상/명암 증강 필수, 배경색은 고정값으로 재현
+4. 촬영 각도 70/75/90도 → 온라인은 소각도, 오프라인은 ±180도
+5. 클래스 불균형 51배 → Copy & Paste 로 희소 클래스 표본을 증가
+6. 각인(print_front/back)이 클래스 정보 → flip 기본 off, 블러 최소
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import os
 import random
 import re
 import shutil
+import sys
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -95,23 +110,80 @@ PathLike = Union[str, Path]
 
 SEED = 42
 
-# ---------- ★ 노트북에서 덮어쓸 수 있는 두 값 ----------
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  0-1. 실행 환경 자동 감지  (Colab · 로컬 · Windows 공용)
+# ═══════════════════════════════════════════════════════════════════════════
+#  ★ 예전 버전은 D:\PillData\... 같은 특정 팀원의 로컬 경로가 하드코딩돼
+#    다른 팀원 환경에서 곧바로 실패했습니다. 이제는 configure() 가
+#    실행 환경을 감지해 경로를 자동으로 채웁니다.
+# ═══════════════════════════════════════════════════════════════════════════
+
+IN_COLAB: bool = ("google.colab" in sys.modules) or Path("/content").is_dir()
+
+#  Colab 에서 팀이 공유하는 Google Drive 프로젝트 폴더
+COLAB_PROJECT_ROOT = (
+    "/content/drive/MyDrive/코드잇 AI 13기/AI 13기 프로젝트/pill-object-detection"
+)
+
+#  환경변수로도 지정할 수 있습니다:  export PILL_PROJECT_ROOT=/path/to/project
+ENV_PROJECT_KEY = "PILL_PROJECT_ROOT"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  0-2. ★★★ 고정 배경색 — 팀 crop 산출물에서 실측한 값 ★★★
+# ═══════════════════════════════════════════════════════════════════════════
+#  측정 대상 : K-003351-003832-016232_0_2_0_2_90_000_200.png
+#              (crop_additional_dataset_shared.py 가 만든 3351_일양하이트린정 2mg)
+#  측정 방법 : 상단 라벨바·파란 테두리를 제외한 뒤, 알약 외접 타원 바깥
+#              (= 촬영 배경) 픽셀만 모아 채널별 median 을 취했습니다.
+#
+#      배경  BGR (128, 110, 105)  /  RGB (105, 110, 128)  /  HEX #696E80
+#      HSV(OpenCV 0~179)  H = 112.8   S = 44.0   V = 128.0
+#      채널 노이즈 std ≈ 4.4 ~ 5.5   |   V 분포 p5~p95 = 119 ~ 134
+#
+#  ▸ Copy & Paste 합성 배경(CP_BG_MODE="fixed")
+#  ▸ letterbox 패딩(USE_BG_PAD=True)
+#  두 곳이 모두 이 값을 씁니다. 값을 바꾸려면 여기 숫자만 고치면 됩니다.
+# ═══════════════════════════════════════════════════════════════════════════
+
+PILL_BG_BGR: Tuple[int, int, int] = (128, 110, 105)   # cv2 기본 채널 순서
+PILL_BG_RGB: Tuple[int, int, int] = (105, 110, 128)   # albumentations / PIL 순서
+PILL_BG_HEX: str = "#696E80"
+PILL_BG_HSV: Tuple[float, float, float] = (113.0, 44.0, 128.0)  # H 0~179
+
+PILL_BG_NOISE_STD: float = 5.0   # 실측 채널 노이즈 (0 이면 완전 균일한 단색)
+PILL_BG_GRAD: float = 6.0        # 실측 밝기 기울기 진폭 (0 이면 기울기 없음)
+PILL_BG_V_JITTER: float = 0.0    # 장마다 전체 밝기를 흔들고 싶을 때만 > 0
+
+#  참고용 — crop 검수 이미지의 상단 라벨바 / 테두리 색 (증강에는 쓰지 않습니다)
+CROP_LABEL_BAR_RGB: Tuple[int, int, int] = (24, 45, 75)
+CROP_FRAME_RGB: Tuple[int, int, int] = (30, 120, 220)
+
+#  letterbox 패딩을 배경색으로 채울지 (False 면 예전처럼 검정 0 패딩)
+USE_BG_PAD: bool = True
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  0-3. 노트북에서 자주 바꾸는 두 값
+# ═══════════════════════════════════════════════════════════════════════════
+
 DEFAULT_GEOM_MULT = 3     # train 원본 1장 → 최종 3장 (원본 1 + 증강 2)
-DEFAULT_N_SYNTH = 600     # Copy & Paste 합성 이미지 수 
-# 200장 단위로 조절해주세요. (200->400->600)
+DEFAULT_N_SYNTH = 600     # Copy & Paste 합성 이미지 수 (200 단위로 조절)
+
 
 # ---------- 전처리 (학습·평가·추론 전부 동일하게 적용) ----------
 USE_WHITE_BALANCE = True   # Shades-of-Gray 화이트밸런스
-USE_CLAHE = True           # ★ Lab 의 L 채널 CLAHE — 항상 켬(배경, 객체 구분)
-CLAHE_CLIP = 3.0
+USE_CLAHE = True           # Lab 의 L 채널 CLAHE — 항상 켬(배경/객체 대비)
+CLAHE_CLIP = 5.0           # 대비를 세게. 노이즈가 뜨면 4.0 으로
 CLAHE_GRID = 8
 
 # ---------- 오프라인 기하 증강 ----------
 ROT_LIMIT = 180            # 알약은 회전 불변이므로 크게
 ROT_PROB = 0.8
-SCALE_RANGE = (0.95, 1.05) 
-MIN_VISIBILITY = 0.2       # 잘린 뒤 원면적의 40% 미만이면 박스 삭제
-USE_FLIP = False           # ★ 각인이 뒤집히므로 기본 off
+SCALE_RANGE = (0.95, 1.05)
+MIN_VISIBILITY = 0.2       # 잘린 뒤 남은 면적이 이보다 작으면 박스 삭제
+USE_FLIP = False           # 각인이 뒤집히므로 기본 off
 
 P_BLUR = 0.20
 P_NOISE = 0.30
@@ -132,34 +204,46 @@ SHADOW_ALPHA = (0.20, 0.55)
 SHADOW_BLUR = (3, 12)
 MAX_CROPS_PER_CLASS = 40   # 크롭 라이브러리 클래스당 최대 장수
 
+# ---------- Copy & Paste 인공 배경 모드 ----------
+#   "fixed"  ★ 기본 — 위에서 실측한 PILL_BG_* 고정색 (재현성 최고)
+#   "crops"  크롭 이미지 배경의 색조(H,S)를 표본에서 뽑아 씀 (예전 동작)
+#   "random" 완전 무작위 단색 (권장하지 않음)
+CP_BG_MODE = "fixed"
+
+CP_BG_FROM_CROPS = True        # "crops" 모드에서만 의미가 있습니다
+CP_BG_V_RANGE = (160.0, 240.0) # "crops" 모드에서 새로 뽑는 밝기(V) 범위
+CP_BG_S_SCALE = (0.95, 1.05)   # "crops" 모드 채도 지터
+CP_BG_HUE_JITTER = 2.0         # "crops" 모드 색상 지터 (H 0~179)
+CP_BG_GRAD = 14.0              # "crops"/"random" 모드 밝기 기울기
+CP_BG_NOISE = 2.0              # "crops" 모드 노이즈 표준편차
+
+
 # ═══════════════════════════════════════════════════════════════════════════
-#  ★★★ 경로 설정 — cropped_pills_review 폴더 ★★★
+#  0-4. ★ 경로 — configure() 가 실행 환경에 맞춰 자동으로 채웁니다
 # ═══════════════════════════════════════════════════════════════════════════
-#  이미 잘라 놓은 알약 크롭 이미지를 Copy&Paste 재료로 사용합니다.
-#  폴더 구조 (클래스별 하위 폴더):
-#      cropped_pills_review/
-#        ├─ 3351_일양하이트린정 2mg/
-#        │    ├─ K-003351-013900-022074_0_2_0_2_75_000_200.png
-#        │    └─ ...
-#        └─ 1234_○○○정 5mg/
-#             └─ ...
+#  기대하는 프로젝트 구조 (팀 공용)
 #
-#  ▸ None  → 기존 동작(train 라벨 박스에서 직접 컷아웃)
-#  ▸ 경로  → 이 폴더의 크롭 이미지를 사용
+#      pill-object-detection/
+#      ├── src/pill_transforms.py           ← 이 파일
+#      ├── notebooks/*.ipynb
+#      ├── data/
+#      │   ├── processed/                   YOLO 데이터셋 (images/labels/data.yaml)
+#      │   ├── processed_aug/               ← 이 모듈이 만드는 증강 데이터셋
+#      │   ├── cropped_pills_review/        Copy & Paste 재료 (클래스별 폴더)
+#      │   └── team_work/cropped_output/    AI Hub 추가 데이터 crop 결과
+#      └── outputs/cutcheck/                컷아웃 검수 산출물
 #
-#  Colab 예시:
-#     CROPPED_PILLS_DIR = "/content/drive/MyDrive/pill_project/cropped_pills_review"
-#  Windows 예시:
-#     CROPPED_PILLS_DIR = r"D:\pill_project\cropped_pills_review"
-#
-#  노트북에서 덮어쓰려면:
-#     import pill_transforms as pt
-#     pt.CROPPED_PILLS_DIR = "/content/drive/MyDrive/.../cropped_pills_review"
-#  또는 함수 인자로:
-#     build_augmented_yolo_dataset(..., crops_dir=".../cropped_pills_review")
+#  노트북에서 직접 지정하려면:
+#      pt.configure(project_root="/content/drive/MyDrive/.../pill-object-detection")
+#      pt.configure(crops_dir="/content/drive/MyDrive/.../cropped_output")
 # ═══════════════════════════════════════════════════════════════════════════
 
-CROPPED_PILLS_DIR: Optional[str] = None
+PROJECT_ROOT: Optional[str] = None
+DATASET_DIR: Optional[str] = None        # 원본 YOLO 데이터셋 (src_root)
+AUG_DATASET_DIR: Optional[str] = None    # 증강 결과 (dst_root)
+CROPPED_PILLS_DIR: Optional[str] = None  # Copy & Paste 재료
+TEAM_WORK_DIR: Optional[str] = None      # AI Hub 팀 작업 폴더
+CUTOUT_CHECK_DIR: Optional[str] = None   # 컷아웃 검수 산출물
 
 # 크롭 폴더에서 읽을 이미지 확장자
 CROPPED_PILLS_EXTS = (".png", ".jpg", ".jpeg", ".bmp", ".webp")
@@ -181,6 +265,152 @@ IMAGENET_STD: Tuple[float, float, float] = (0.229, 0.224, 0.225)
 # PillDetectionDataset 이 기대하는 bbox 포맷
 BBOX_FORMAT = "pascal_voc"   # [x1, y1, x2, y2] 절대 픽셀
 LABEL_FIELDS = ["labels"]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Part 0-5. 환경 설정 함수 — 모든 노트북의 첫 셀에서 호출하세요
+# ═══════════════════════════════════════════════════════════════════════════
+
+def mount_drive(mountpoint: str = "/content/drive") -> bool:
+    """Colab 이면 Google Drive 를 마운트합니다. 이미 마운트돼 있으면 그냥 True."""
+    if not IN_COLAB:
+        print("Colab 환경이 아닙니다 — 드라이브 마운트를 건너뜁니다.")
+        return False
+    if Path(mountpoint, "MyDrive").is_dir():
+        print(f"이미 마운트됨: {mountpoint}")
+        return True
+    try:
+        from google.colab import drive  # type: ignore
+
+        drive.mount(mountpoint)
+        return True
+    except Exception as e:  # pragma: no cover
+        print(f"드라이브 마운트 실패: {e}")
+        return False
+
+
+def find_project_root(start: Optional[PathLike] = None) -> Path:
+    """프로젝트 루트를 자동으로 찾습니다.
+
+    우선순위
+        1. 환경변수 PILL_PROJECT_ROOT
+        2. Colab 의 공유 드라이브 경로 (COLAB_PROJECT_ROOT)
+        3. 현재 폴더에서 위로 올라가며 'pill-object-detection' 또는
+           data/ + src/ 를 모두 가진 폴더
+        4. 현재 작업 폴더
+    """
+    env = os.environ.get(ENV_PROJECT_KEY)
+    if env and Path(env).is_dir():
+        return Path(env).resolve()
+
+    if IN_COLAB and Path(COLAB_PROJECT_ROOT).is_dir():
+        return Path(COLAB_PROJECT_ROOT).resolve()
+
+    here = Path(start).resolve() if start else Path.cwd().resolve()
+    for cand in [here, *here.parents]:
+        if cand.name == "pill-object-detection":
+            return cand
+        if (cand / "data").is_dir() and (cand / "src").is_dir():
+            return cand
+    return here
+
+
+def _first_existing(*cands: Optional[PathLike]) -> Optional[Path]:
+    for c in cands:
+        if c and Path(c).is_dir():
+            return Path(c).resolve()
+    return None
+
+
+def configure(
+    project_root: Optional[PathLike] = None,
+    dataset_dir: Optional[PathLike] = None,
+    aug_dataset_dir: Optional[PathLike] = None,
+    crops_dir: Optional[PathLike] = None,
+    team_work_dir: Optional[PathLike] = None,
+    cutout_check_dir: Optional[PathLike] = None,
+    verbose: bool = True,
+) -> Dict[str, Optional[str]]:
+    """★ 모든 노트북의 첫 셀에서 한 번 호출하세요.
+
+    인자를 주지 않으면 실행 환경(Colab / 로컬)을 감지해 프로젝트 표준 구조로
+    경로를 채웁니다. 개별 인자만 덮어써도 됩니다.
+
+        import pill_transforms as pt
+        pt.configure()                                   # 자동
+        pt.configure(project_root="/content/drive/MyDrive/.../pill-object-detection")
+        pt.configure(crops_dir=".../team_work/cropped_output")
+
+    Returns:
+        설정된 경로 dict (존재하지 않는 항목은 그대로 두고 경고만 합니다).
+    """
+    global PROJECT_ROOT, DATASET_DIR, AUG_DATASET_DIR
+    global CROPPED_PILLS_DIR, TEAM_WORK_DIR, CUTOUT_CHECK_DIR
+
+    root = Path(project_root).resolve() if project_root else find_project_root()
+    PROJECT_ROOT = str(root)
+
+    DATASET_DIR = str(Path(dataset_dir).resolve()) if dataset_dir else str(
+        root / "data" / "processed"
+    )
+    AUG_DATASET_DIR = str(Path(aug_dataset_dir).resolve()) if aug_dataset_dir else str(
+        root / "data" / "processed_aug"
+    )
+    TEAM_WORK_DIR = str(Path(team_work_dir).resolve()) if team_work_dir else str(
+        root / "data" / "team_work"
+    )
+    CUTOUT_CHECK_DIR = str(Path(cutout_check_dir).resolve()) if cutout_check_dir else str(
+        root / "outputs" / "cutcheck"
+    )
+
+    if crops_dir:
+        CROPPED_PILLS_DIR = str(Path(crops_dir).resolve())
+    else:
+        # 표준 위치 → AI Hub 팀 작업 결과 → 없으면 None(= train 박스에서 직접 컷아웃)
+        found = _first_existing(
+            root / "data" / "cropped_pills_review",
+            Path(TEAM_WORK_DIR) / "cropped_output",
+            root / "data" / "team_work" / "cropped_output",
+        )
+        CROPPED_PILLS_DIR = str(found) if found else None
+
+    paths = current_paths()
+    if verbose:
+        print("═" * 66)
+        print(f"  환경: {'Colab' if IN_COLAB else '로컬'}   |   "
+              f"배경색 고정 {PILL_BG_HEX} RGB{PILL_BG_RGB}")
+        print("═" * 66)
+        check_paths(verbose=True)
+    return paths
+
+
+def current_paths() -> Dict[str, Optional[str]]:
+    """현재 설정된 경로를 dict 로 돌려줍니다."""
+    return {
+        "PROJECT_ROOT": PROJECT_ROOT,
+        "DATASET_DIR": DATASET_DIR,
+        "AUG_DATASET_DIR": AUG_DATASET_DIR,
+        "CROPPED_PILLS_DIR": CROPPED_PILLS_DIR,
+        "TEAM_WORK_DIR": TEAM_WORK_DIR,
+        "CUTOUT_CHECK_DIR": CUTOUT_CHECK_DIR,
+    }
+
+
+def ensure_deps(albumentations: bool = True, quiet: bool = True) -> Dict[str, bool]:
+    """Colab 에서 부족한 패키지를 설치합니다 (노트북 첫 셀용, 선택).
+
+        pt.ensure_deps()
+    """
+    out: Dict[str, bool] = {}
+    want = ["opencv-python-headless"] if IN_COLAB else []
+    if albumentations and not HAS_ALBUMENTATIONS:
+        want.append("albumentations")
+    for pkg in want:
+        rc = os.system(f"{sys.executable} -m pip install {'-q ' if quiet else ''}{pkg}")
+        out[pkg] = rc == 0
+    if not want:
+        print("필요한 패키지가 이미 설치돼 있습니다.")
+    return out
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -345,25 +575,36 @@ def _require_totensor() -> None:
         )
 
 
+def pad_fill_value() -> Union[int, Tuple[int, int, int]]:
+    """★ letterbox 패딩 색 — 기본은 실측 고정 배경색(RGB).
+
+    albumentations 파이프라인은 RGB 이미지를 받으므로 PILL_BG_RGB 를 씁니다.
+    검정 패딩으로 되돌리려면 `pt.USE_BG_PAD = False`.
+    """
+    return tuple(PILL_BG_RGB) if USE_BG_PAD else 0
+
+
 def _pad_transform(image_size: int):
     """PadIfNeeded 의 인자명이 albumentations 버전마다 달라 둘 다 시도합니다."""
+    fill = pad_fill_value()
     common = dict(
         min_height=image_size,
         min_width=image_size,
         border_mode=cv2.BORDER_CONSTANT,
     )
     try:
-        return A.PadIfNeeded(**common, fill=0)          # 1.4.21+
+        return A.PadIfNeeded(**common, fill=fill)       # 1.4.21+
     except TypeError:
-        return A.PadIfNeeded(**common, value=0)         # 구버전
+        return A.PadIfNeeded(**common, value=fill)      # 구버전
 
 
 def _rotate_transform(limit: float, p: float):
+    fill = pad_fill_value()
     common = dict(limit=limit, border_mode=cv2.BORDER_CONSTANT, p=p)
     try:
-        return A.Rotate(**common, fill=0)
+        return A.Rotate(**common, fill=fill)
     except TypeError:
-        return A.Rotate(**common, value=0)
+        return A.Rotate(**common, value=fill)
 
 
 def _bbox_params(min_visibility: float = 0.2, min_area: float = 4.0):
@@ -398,10 +639,10 @@ def get_train_transforms(
     구성 순서
     ---------
     1. RandomSizedBBoxSafeCrop        : bbox 를 보존하면서 스케일 변화를 학습
-    2. LongestMaxSize + PadIfNeeded   : 976x1280 비율을 왜곡 없이 정사각 캔버스에
-    3. HorizontalFlip / VerticalFlip  : 기본 off (각인이 뒤집히면 클래스 정보 손상)
-    4. Rotate(소각도)                 : 70/75/90도 촬영 각도 변화를 모사
-    5. ★ CLAHE(p=1.0)                : **모든 이미지에 항상 적용**
+    2. LongestMaxSize                 : 976x1280 비율을 왜곡 없이 축소
+    3. ★ CLAHE(p=1.0)                : **모든 이미지에 항상 적용** (패딩 앞)
+    4. PadIfNeeded(letterbox)         : 여백을 고정 배경색 PILL_BG_RGB 로 채움
+    5. HorizontalFlip / VerticalFlip / Rotate(소각도)
     6. OneOf(밝기 / 컬러)             : 항상 동일한 배경·조명 한계를 보완
     7. OneOf(GaussNoise / MotionBlur) : 촬영 노이즈·흔들림 대비
     8. Normalize + ToTensorV2         : 모델 입력 형태로 변환
@@ -421,17 +662,21 @@ def get_train_transforms(
             p=0.5,
         ),
         A.LongestMaxSize(max_size=image_size),
+
+        # ★ CLAHE — 전 이미지 적용 (전처리이므로 확률 없음)
+        #   ★ 반드시 패딩 **앞**에 둡니다. 패딩 뒤에 걸면 고정 배경색으로 채운
+        #     여백이 타일 히스토그램에 섞여 가장자리 대비가 왜곡되고,
+        #     패딩 색도 미세하게 달라집니다.
+        A.CLAHE(clip_limit=CLAHE_CLIP, tile_grid_size=(CLAHE_GRID, CLAHE_GRID), p=1.0),
+
         _pad_transform(image_size),
 
         # 상하좌우 반전 — 각인 때문에 기본 비활성
         A.HorizontalFlip(p=hflip_p),
         A.VerticalFlip(p=vflip_p),
 
-        # 회전 (소각도)
+        # 회전 (소각도) — 여백은 고정 배경색으로 채웁니다
         _rotate_transform(limit=15, p=0.4),
-
-        # ★ CLAHE — 전 이미지 적용 (전처리이므로 확률 없음)
-        A.CLAHE(clip_limit=CLAHE_CLIP, tile_grid_size=(CLAHE_GRID, CLAHE_GRID), p=1.0),
 
         # 밝기 / 컬러는 둘 중 하나만 (누적되면 color1 정보가 왜곡됨)
         A.OneOf(
@@ -487,9 +732,9 @@ def get_valid_transforms(
 
     transforms = [
         A.LongestMaxSize(max_size=image_size),
-        _pad_transform(image_size),
-        # ★ 학습과 동일한 CLAHE
+        # ★ 학습과 동일한 CLAHE (패딩 앞)
         A.CLAHE(clip_limit=CLAHE_CLIP, tile_grid_size=(CLAHE_GRID, CLAHE_GRID), p=1.0),
+        _pad_transform(image_size),
     ]
 
     if to_tensor:
@@ -518,6 +763,137 @@ get_train_transform = get_train_transforms
 get_eval_transform = get_valid_transforms
 get_valid_transform = get_valid_transforms
 get_test_transform = get_test_transforms
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Part 3.5. Faster R-CNN 어댑터 + 추론 letterbox 복원
+#            (train.ipynb / predict.ipynb 가 같은 코드를 쓰도록 모듈로 이동)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class FasterRCNNTransform:
+    """Albumentations 결과를 Faster R-CNN 입력 형식으로 바꾸는 Adapter.
+
+    ★ 예전에는 이 클래스를 train 노트북 안에 직접 정의했습니다. 그래서
+      predict 노트북이 같은 전처리를 재현하지 못할 위험이 있었습니다.
+      이제 두 노트북 모두 이 모듈에서 가져다 씁니다.
+
+    출력 이미지: torch.Tensor [C, H, W] float32, 0~1
+    (Normalize 는 걸지 않습니다 — torchvision detection 모델이 내부에서 수행)
+    """
+
+    def __init__(self, transform):
+        self.transform = transform
+
+    def __call__(self, image, bboxes, labels):
+        transformed = self.transform(image=image, bboxes=bboxes, labels=labels)
+        img = transformed["image"]
+
+        if isinstance(img, np.ndarray):
+            import torch  # 지연 import — torch 없이도 모듈이 로드되도록
+
+            t = torch.from_numpy(np.ascontiguousarray(img))
+            if t.ndim == 3:
+                t = t.permute(2, 0, 1)
+            transformed["image"] = t.float() / 255.0
+        return transformed
+
+    def __repr__(self) -> str:  # 노트북 출력용
+        return f"FasterRCNNTransform({self.transform})"
+
+
+def get_frcnn_train_transform(image_size: int = 640, augment: bool = False,
+                              **kwargs) -> FasterRCNNTransform:
+    """Faster R-CNN 학습용 transform.
+
+    Args:
+        augment: False(기본) 면 baseline 과 동일하게 증강 없이
+                 letterbox + CLAHE 만 적용합니다. True 면 온라인 증강을 켭니다.
+    """
+    base = (get_train_transforms(image_size=image_size, to_tensor=False, **kwargs)
+            if augment else
+            get_valid_transforms(image_size=image_size, to_tensor=False, **kwargs))
+    return FasterRCNNTransform(base)
+
+
+def get_frcnn_eval_transform(image_size: int = 640, **kwargs) -> FasterRCNNTransform:
+    """Faster R-CNN 검증 / 추론용 transform (학습과 동일한 전처리)."""
+    return FasterRCNNTransform(
+        get_valid_transforms(image_size=image_size, to_tensor=False, **kwargs)
+    )
+
+
+def letterbox_meta(orig_h: int, orig_w: int, image_size: int = 640) -> Dict[str, float]:
+    """LongestMaxSize + PadIfNeeded(center) 가 만든 좌표 변환 정보.
+
+    `get_valid_transforms` 와 **동일한 규칙**으로 계산하므로, 추론 결과 박스를
+    원본 이미지 좌표로 되돌릴 때 그대로 쓸 수 있습니다.
+    """
+    scale = float(image_size) / float(max(orig_h, orig_w))
+    new_h, new_w = int(round(orig_h * scale)), int(round(orig_w * scale))
+    return {
+        "scale": scale,
+        "pad_top": (image_size - new_h) // 2,
+        "pad_left": (image_size - new_w) // 2,
+        "new_h": new_h, "new_w": new_w,
+        "orig_h": int(orig_h), "orig_w": int(orig_w),
+        "image_size": int(image_size),
+    }
+
+
+def undo_letterbox_boxes(boxes_xyxy, meta: Dict[str, float]) -> np.ndarray:
+    """★ 추론 박스([x1,y1,x2,y2], 640 기준)를 원본 해상도 좌표로 되돌립니다.
+
+        pred = model([img_t])[0]
+        boxes = pt.undo_letterbox_boxes(pred["boxes"].cpu().numpy(), meta)
+
+    제출 파일은 원본 좌표를 요구하므로 이 단계를 빠뜨리면 mAP 가 0 이 됩니다.
+    """
+    b = np.asarray(boxes_xyxy, dtype=np.float32).reshape(-1, 4).copy()
+    if b.size == 0:
+        return b
+    b[:, [0, 2]] -= float(meta["pad_left"])
+    b[:, [1, 3]] -= float(meta["pad_top"])
+    b /= float(meta["scale"])
+    b[:, [0, 2]] = np.clip(b[:, [0, 2]], 0, meta["orig_w"] - 1)
+    b[:, [1, 3]] = np.clip(b[:, [1, 3]], 0, meta["orig_h"] - 1)
+    return b
+
+
+def prepare_image_for_inference(
+    image: Union[PathLike, np.ndarray],
+    image_size: int = 640,
+    to_tensor: bool = True,
+):
+    """추론 1장 전처리. `(tensor 또는 ndarray, meta)` 를 돌려줍니다.
+
+        img_t, meta = pt.prepare_image_for_inference("test_images/K-000001.png")
+        with torch.no_grad():
+            pred = model([img_t.to(device)])[0]
+        boxes = pt.undo_letterbox_boxes(pred["boxes"].cpu().numpy(), meta)
+
+    학습 때와 **완전히 같은** letterbox + CLAHE 를 적용합니다.
+    """
+    if isinstance(image, np.ndarray):
+        rgb = image if image.shape[-1] == 3 else cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    else:
+        bgr = imread_unicode(image)
+        if bgr is None:
+            raise FileNotFoundError(f"이미지를 읽지 못했습니다: {image}")
+        rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+
+    h, w = rgb.shape[:2]
+    meta = letterbox_meta(h, w, image_size=image_size)
+
+    tf = get_valid_transforms(image_size=image_size, to_tensor=False)
+    out = tf(image=rgb, bboxes=[], labels=[])["image"]
+
+    if not to_tensor:
+        return out, meta
+
+    import torch  # 지연 import
+
+    t = torch.from_numpy(np.ascontiguousarray(out)).permute(2, 0, 1).float() / 255.0
+    return t, meta
 
 
 class SafeAlbumentationsTransform:
@@ -1089,6 +1465,67 @@ def _match_class_id(folder_name: str, lut: Dict[str, int]) -> Optional[int]:
     return None
 
 
+def sample_bg_tone(
+    crop_bgr: np.ndarray,
+    mask: Optional[np.ndarray] = None,
+) -> Optional[Tuple[float, float]]:
+    """★ 크롭 이미지의 **배경 색조만** 뽑습니다 → (H, S), 0~179 / 0~255.
+
+    - mask 가 있으면 알약 바깥(mask==0) 픽셀을, 없으면 테두리 링을 배경으로 봅니다.
+    - 밝기(V)는 **일부러 버립니다.** Copy&Paste 인공 배경은 이 색조에
+      새로 뽑은 밝기를 입혀 만듭니다. (배경 색감은 유지 + 밝기는 다양화)
+    - 색상(H)은 원형 값이라 산술평균이 아니라 벡터 평균으로 구합니다.
+    """
+    if crop_bgr is None or crop_bgr.ndim != 3:
+        return None
+    h, w = crop_bgr.shape[:2]
+    if h < 8 or w < 8:
+        return None
+
+    hsv = cv2.cvtColor(crop_bgr[..., :3], cv2.COLOR_BGR2HSV)
+    if mask is not None and mask.shape[:2] == (h, w) and int((mask == 0).sum()) >= 50:
+        bg = mask == 0
+    else:
+        bg = np.zeros((h, w), bool)
+        b = max(2, min(h, w) // 10)
+        bg[:b] = bg[-b:] = True
+        bg[:, :b] = bg[:, -b:] = True
+
+    hh = hsv[..., 0][bg].astype(np.float32)
+    ss = hsv[..., 1][bg].astype(np.float32)
+    if hh.size < 20:
+        return None
+
+    ang = hh * (np.pi / 90.0)               # 0~179 → 0~2π
+    hbar = math.atan2(float(np.sin(ang).mean()), float(np.cos(ang).mean()))
+    if hbar < 0:
+        hbar += 2 * math.pi
+    return (float(hbar * 90.0 / np.pi), float(np.median(ss)))
+
+
+def _checkerboard(h: int, w: int, cell: int = 12) -> np.ndarray:
+    """투명 영역 확인용 체커보드 배경."""
+    yy, xx = np.mgrid[0:h, 0:w]
+    tile = (((yy // cell) + (xx // cell)) % 2).astype(np.uint8)
+    return np.dstack([np.where(tile == 0, 235, 200).astype(np.uint8)] * 3)
+
+
+def cutout_panel(crop_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """검수용 3분할 패널: 원본 | 마스크 경계 | 체커보드 위 컷아웃."""
+    h, w = mask.shape[:2]
+    gap = np.full((h, 6, 3), 255, np.uint8)
+
+    edge = crop_bgr.copy()
+    cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL,
+                               cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(edge, cnts, -1, (0, 0, 255), 2)
+
+    a = mask.astype(np.float32)[..., None]
+    comp = np.clip(_checkerboard(h, w).astype(np.float32) * (1 - a)
+                   + crop_bgr.astype(np.float32) * a, 0, 255).astype(np.uint8)
+    return np.hstack([crop_bgr, gap, edge, gap, comp])
+
+
 class PillCropLibrary:
     """YOLO train 이미지의 GT 박스에서 알약을 컷아웃해 클래스별로 보관합니다.
 
@@ -1106,14 +1543,19 @@ class PillCropLibrary:
         max_per_class: int = MAX_CROPS_PER_CLASS,
         margin: float = 0.12,
         crops_dir: Optional[PathLike] = None,   # ★ cropped_pills_review 경로
+        check_dir: Optional[PathLike] = None,   # ★ 컷아웃 검수 저장 폴더(cutcheck)
     ):
         self.cache_dir = Path(cache_dir)
         self.max_per_class = int(max_per_class)
         self.margin = float(margin)
+        self.check_dir: Optional[Path] = Path(check_dir) if check_dir else None
         # ★ 인자 > 전역 CROPPED_PILLS_DIR 순으로 결정
         _cd = crops_dir if crops_dir is not None else CROPPED_PILLS_DIR
         self.crops_dir: Optional[Path] = Path(_cd) if _cd else None
         self.unmatched_folders: List[str] = []
+        # ★ 크롭 이미지 배경에서 뽑은 색조 (H, S) 표본 — 인공 배경 생성에 사용
+        self.bg_tones: List[Tuple[float, float]] = []
+        self.class_names: Dict[int, str] = {}
         self.items: Dict[int, List[Tuple[np.ndarray, np.ndarray]]] = {}
         self.box_stats: Dict[int, Dict[str, float]] = {}
         self.global_box: Dict[str, float] = {"w_med": 120.0, "h_med": 120.0}
@@ -1125,11 +1567,53 @@ class PillCropLibrary:
         d = self.cache_dir / str(cid)
         return sorted(d.glob("*.png")) if d.is_dir() else []
 
+    @property
+    def _tone_json(self) -> Path:
+        return self.cache_dir / "_bg_tones.json"
+
+    def _save_tones(self) -> None:
+        """★ 배경 색조 표본을 캐시에 남깁니다 (두 번째 실행에서 컷아웃을 건너뛰어도
+        인공 배경 색감이 그대로 재현되도록)."""
+        if not self.bg_tones:
+            return
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            self._tone_json.write_text(
+                json.dumps([[round(h, 3), round(s, 3)] for h, s in self.bg_tones]),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def _load_tones(self) -> None:
+        if self.bg_tones or not self._tone_json.exists():
+            return
+        try:
+            self.bg_tones = [(float(a), float(b))
+                             for a, b in json.loads(self._tone_json.read_text(encoding="utf-8"))]
+        except Exception:
+            self.bg_tones = []
+
     def _save_cache(self, cid, idx, bgr, mask):
         d = self.cache_dir / str(cid)
         d.mkdir(parents=True, exist_ok=True)
         rgba = np.dstack([bgr, (mask * 255).astype(np.uint8)])
         imwrite_unicode(d / f"{idx:04d}.png", rgba)
+
+    def _save_check(self, cid, stem: str, crop, m, bgr, mask) -> None:
+        """★ 컷아웃 검수물 저장 — cut/ (RGBA) + panel/ (원본|경계|투명배경)."""
+        if self.check_dir is None:
+            return
+        try:
+            name = self.class_names.get(int(cid)) if self.class_names else None
+            folder = f"{int(cid)}_{name}" if name else str(int(cid))
+            folder = re.sub(r'[\\/:*?"<>|]', "_", folder)[:80]
+            base = self.check_dir / folder
+            rgba = np.dstack([bgr, (mask * 255).astype(np.uint8)])
+            imwrite_unicode(base / "cut" / f"{stem}.png", rgba)
+            imwrite_unicode(base / "panel" / f"{stem}.png", cutout_panel(crop, m))
+        except Exception:
+            self.stats["검수 저장 실패"] += 1
 
     @staticmethod
     def _tight(bgr, mask):
@@ -1153,6 +1637,10 @@ class PillCropLibrary:
         if rebuild and self.cache_dir.exists():
             shutil.rmtree(self.cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        if names:
+            self.class_names = {i: str(n) for i, n in enumerate(names)}
+        if not rebuild:
+            self._load_tones()          # ★ 캐시 재사용 시 배경 색조도 복원
 
         # ---- 박스 크기 통계 (붙여넣을 때 목표 크기로 사용) ----
         ws, hs = defaultdict(list), defaultdict(list)
@@ -1225,7 +1713,13 @@ class PillCropLibrary:
                 if min(bgr.shape[:2]) < 16:
                     self.stats["너무 작음"] += 1
                     continue
+
+                tone = sample_bg_tone(crop, m)          # ★ 배경 색조만 수집
+                if tone is not None:
+                    self.bg_tones.append(tone)
+
                 self._save_cache(cid, idx, bgr, mask)
+                self._save_check(cid, f"{Path(src).stem}_{idx:03d}", crop, m, bgr, mask)
                 idx += 1
                 out.append((bgr, mask))
                 self.stats["신규 컷아웃"] += 1
@@ -1235,6 +1729,7 @@ class PillCropLibrary:
             if verbose and n_done % 20 == 0:
                 print(f"    크롭 라이브러리 {n_done}/{len(classes)} 클래스")
 
+        self._save_tones()
         return self
 
     # ---------- ★ cropped_pills_review 폴더에서 구축 ----------
@@ -1330,7 +1825,13 @@ class PillCropLibrary:
                     self.stats["너무 작음"] += 1
                     continue
 
+                # ★ 이 크롭 이미지의 배경 색조(H,S)만 저장 → 인공 배경 재료
+                tone = sample_bg_tone(crop, m)
+                if tone is not None:
+                    self.bg_tones.append(tone)
+
                 self._save_cache(cid, idx, bgr, mask)
+                self._save_check(cid, p.stem, crop, m, bgr, mask)
                 idx += 1
                 out.append((bgr, mask))
                 self.stats["신규 크롭"] += 1
@@ -1340,6 +1841,10 @@ class PillCropLibrary:
             if verbose and n_done % 20 == 0:
                 print(f"    크롭 라이브러리 {n_done}/{len(subdirs)} 폴더")
 
+        self._save_tones()
+        if verbose:
+            print(f"    배경 색조 표본 {len(self.bg_tones):,}개 수집 "
+                  f"(Copy&Paste 인공 배경에 사용)")
         if verbose and self.unmatched_folders:
             head = ", ".join(self.unmatched_folders[:5])
             print(f"    ⚠️ 클래스명 매칭 실패 폴더 {len(self.unmatched_folders)}개: {head}"
@@ -1393,6 +1898,172 @@ class PillCropLibrary:
         return bgr, mask
 
 
+def export_cutout_check(
+    crops_dir: Optional[PathLike] = None,
+    out_dir: Optional[PathLike] = None,
+    names: Optional[Sequence[str]] = None,
+    *,
+    max_per_class: int = 0,          # 0 = 전부
+    save_panel: bool = True,
+    save_failed: bool = True,
+    overwrite: bool = False,
+    verbose: bool = True,
+) -> Dict[str, Any]:
+    """★ `cropped_pills_review` 전체를 컷아웃해 검수 폴더에 정리합니다.
+
+    기본 출력 = `CUTOUT_CHECK_DIR` (= D:/PillData/cutcheck)
+
+        cutcheck/
+        ├── {category_id}_{클래스명}/
+        │   ├── cut/     ← 배경 투명(RGBA) 컷아웃 — Copy&Paste 에 실제로 붙는 그림
+        │   └── panel/   ← 원본 | 경계 | 체커보드 합성 (눈으로 검수)
+        ├── _failed/     ← 컷아웃 실패 원본 (파라미터 조정 대상)
+        ├── cutout_report.csv    파일 단위 결과
+        └── cutout_summary.csv   클래스 단위 성공률
+
+    Returns:
+        {"n_ok", "n_fail", "n_class", "out_dir", "report_csv", "summary_csv"}
+    """
+    crops_dir = Path(crops_dir or CROPPED_PILLS_DIR or "")
+    out_dir = Path(out_dir or CUTOUT_CHECK_DIR or "")
+    if not crops_dir.is_dir():
+        raise FileNotFoundError(
+            f"크롭 폴더를 찾을 수 없습니다: {crops_dir}\n"
+            f"→ CROPPED_PILLS_DIR 경로를 확인하세요."
+        )
+    if str(out_dir) in ("", "."):
+        raise ValueError("out_dir(CUTOUT_CHECK_DIR)를 지정하세요.")
+
+    if overwrite and out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    lut = _build_name_lookup(names) if names else {}
+    subdirs = sorted([d for d in crops_dir.iterdir() if d.is_dir()])
+    if not subdirs:                                   # 하위 폴더가 없으면 평면 구조
+        subdirs = [crops_dir]
+
+    t0 = time.time()
+    rows: List[Dict[str, Any]] = []
+    per_class = defaultdict(lambda: {"ok": 0, "fail": 0})
+    tones: List[Tuple[float, float]] = []
+    stats = Counter()
+
+    for n_done, d in enumerate(subdirs, 1):
+        cid = _match_class_id(d.name, lut) if lut else None
+        label = f"{cid}_{names[cid]}" if (cid is not None and names) else d.name
+        folder = re.sub(r'[\\/:*?"<>|]', "_", str(label))[:80]
+        dst = out_dir / folder
+
+        files = sorted(p for p in d.iterdir()
+                       if p.is_file() and p.suffix.lower() in CROPPED_PILLS_EXTS)
+        if max_per_class:
+            files = files[:max_per_class]
+
+        for p in files:
+            raw = imread_unicode_unchanged(p)
+            if raw is None:
+                stats["읽기 실패"] += 1
+                rows.append({"folder": d.name, "file": p.name, "class_id": cid,
+                             "status": "read_fail"})
+                per_class[label]["fail"] += 1
+                continue
+            if raw.ndim == 2:
+                raw = cv2.cvtColor(raw, cv2.COLOR_GRAY2BGR)
+
+            m, how = None, "chroma/grabcut"
+            if CROPPED_USE_ALPHA and raw.ndim == 3 and raw.shape[2] == 4:
+                crop = raw[..., :3].copy()
+                if raw[..., 3].min() < 250:
+                    m, how = (raw[..., 3] > 127).astype(np.uint8), "alpha"
+            else:
+                crop = raw[..., :3].copy() if raw.ndim == 3 else raw
+            if m is None:
+                m = cutout_pill(crop)
+
+            if m is None or min(crop.shape[:2]) < 16:
+                stats["컷아웃 실패"] += 1
+                per_class[label]["fail"] += 1
+                rows.append({"folder": d.name, "file": p.name, "class_id": cid,
+                             "status": "cutout_fail"})
+                if save_failed:
+                    imwrite_unicode(out_dir / "_failed" / folder / p.name, crop)
+                continue
+
+            ys, xs = np.where(m > 0)
+            y0, y1 = int(ys.min()), int(ys.max()) + 1
+            x0, x1 = int(xs.min()), int(xs.max()) + 1
+            bgr, mask = crop[y0:y1, x0:x1].copy(), m[y0:y1, x0:x1].copy()
+
+            rgba = np.dstack([bgr, (mask * 255).astype(np.uint8)])
+            imwrite_unicode(dst / "cut" / f"{p.stem}.png", rgba)
+            if save_panel:
+                imwrite_unicode(dst / "panel" / f"{p.stem}.png", cutout_panel(crop, m))
+
+            tone = sample_bg_tone(crop, m)
+            if tone:
+                tones.append(tone)
+
+            stats["성공"] += 1
+            per_class[label]["ok"] += 1
+            rows.append({
+                "folder": d.name, "file": p.name, "class_id": cid, "status": "ok",
+                "method": how,
+                "src_w": crop.shape[1], "src_h": crop.shape[0],
+                "cut_w": bgr.shape[1], "cut_h": bgr.shape[0],
+                "fill_ratio": round(float(mask.mean()), 4),
+                "bg_hue": round(tone[0], 2) if tone else "",
+                "bg_sat": round(tone[1], 2) if tone else "",
+            })
+
+        if verbose and (n_done % 10 == 0 or n_done == len(subdirs)):
+            print(f"    컷아웃 검수 {n_done}/{len(subdirs)} 폴더  "
+                  f"(성공 {stats['성공']:,} / 실패 {stats['컷아웃 실패']:,})")
+
+    # ---------- 리포트 ----------
+    report_csv = out_dir / "cutout_report.csv"
+    cols = ["folder", "file", "class_id", "status", "method",
+            "src_w", "src_h", "cut_w", "cut_h", "fill_ratio", "bg_hue", "bg_sat"]
+    import csv as _csv
+    with open(report_csv, "w", newline="", encoding="utf-8-sig") as f:
+        w = _csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow({c: r.get(c, "") for c in cols})
+
+    summary_csv = out_dir / "cutout_summary.csv"
+    with open(summary_csv, "w", newline="", encoding="utf-8-sig") as f:
+        w = _csv.writer(f)
+        w.writerow(["class_folder", "성공", "실패", "성공률"])
+        for k in sorted(per_class):
+            ok, ng = per_class[k]["ok"], per_class[k]["fail"]
+            w.writerow([k, ok, ng, round(ok / max(ok + ng, 1), 3)])
+
+    # 배경 색조 표본도 남겨 둡니다 (Copy&Paste 배경 재현용)
+    if tones:
+        (out_dir / "bg_tones.json").write_text(
+            json.dumps([[round(h, 3), round(s, 3)] for h, s in tones]), encoding="utf-8"
+        )
+
+    n_ok, n_fail = stats["성공"], stats["컷아웃 실패"] + stats["읽기 실패"]
+    if verbose:
+        print("\n■ 컷아웃 검수 결과")
+        print(f"  성공 {n_ok:,}장 / 실패 {n_fail:,}장  "
+              f"(성공률 {n_ok / max(n_ok + n_fail, 1):.1%})")
+        print(f"  클래스 폴더 {len(per_class):,}개")
+        print(f"  배경 색조 표본 {len(tones):,}개 → {out_dir / 'bg_tones.json'}")
+        print(f"  저장 위치 {out_dir}")
+        print(f"  리포트 {report_csv.name} / {summary_csv.name}")
+        print(f"  소요 {time.time() - t0:.1f}초")
+        if n_fail:
+            print("  ※ 실패분은 _failed 폴더에 있습니다. "
+                  "CUT_MIN_CHROMA 를 5.0, CUT_CHROMA_K 를 1.6 으로 낮추면 대개 줄어듭니다.")
+
+    return {"n_ok": n_ok, "n_fail": n_fail, "n_class": len(per_class),
+            "out_dir": str(out_dir), "report_csv": str(report_csv),
+            "summary_csv": str(summary_csv), "bg_tones": tones}
+
+
 class CopyPasteAugmentor:
     """크롭 라이브러리의 알약을 새 위치에 붙여 합성 이미지를 만듭니다.
 
@@ -1422,6 +2093,9 @@ class CopyPasteAugmentor:
         self.feather = feather
         self.synth_ratio = synth_ratio
 
+        # ★ 크롭 이미지에서 모은 배경 색조 표본 (없으면 랜덤 배경으로 fallback)
+        self.bg_tones: List[Tuple[float, float]] = list(getattr(library, "bg_tones", []) or [])
+
         self.pool = library.classes
         if not self.pool:
             raise RuntimeError(
@@ -1440,14 +2114,80 @@ class CopyPasteAugmentor:
 
     # ---------- 배경 ----------
     @staticmethod
-    def blank_canvas(H, W, rng):
-        """단색 + 가우시안 노이즈 + 완만한 밝기 기울기."""
+    def random_canvas(H, W, rng):
+        """예전 방식 — 완전 랜덤 단색 + 노이즈 + 밝기 기울기 (fallback)."""
         base = np.array([rng.randint(110, 245) for _ in range(3)], np.float32)
         canvas = np.ones((H, W, 3), np.float32) * base
         gy = np.linspace(rng.uniform(-14, 14), rng.uniform(-14, 14), H)[:, None]
         gx = np.linspace(rng.uniform(-14, 14), rng.uniform(-14, 14), W)[None, :]
         canvas += (gy + gx)[..., None]
         canvas += np.random.normal(0, 5, (H, W, 3))
+        return np.clip(canvas, 0, 255).astype(np.uint8)
+
+    @staticmethod
+    def fixed_canvas(H, W, rng):
+        """★ 기본 배경 — 팀 crop 에서 실측한 PILL_BG_BGR 고정색으로 채웁니다.
+
+        숫자는 모두 Part 0-2 에 상수로 박혀 있어 누가 언제 실행해도 같은
+        배경이 나옵니다. 완전한 단색이 되지 않도록 실측한 만큼의
+        밝기 기울기(PILL_BG_GRAD)와 노이즈(PILL_BG_NOISE_STD)만 얹습니다.
+        (둘 다 0 으로 두면 완벽한 단색 배경이 됩니다)
+        """
+        canvas = np.empty((H, W, 3), np.float32)
+        canvas[..., 0] = float(PILL_BG_BGR[0])
+        canvas[..., 1] = float(PILL_BG_BGR[1])
+        canvas[..., 2] = float(PILL_BG_BGR[2])
+
+        if PILL_BG_V_JITTER:
+            canvas += rng.uniform(-PILL_BG_V_JITTER, PILL_BG_V_JITTER)
+        if PILL_BG_GRAD:
+            g = PILL_BG_GRAD
+            gy = np.linspace(rng.uniform(-g, g), rng.uniform(-g, g), H)[:, None]
+            gx = np.linspace(rng.uniform(-g, g), rng.uniform(-g, g), W)[None, :]
+            canvas += (gy + gx)[..., None]
+        if PILL_BG_NOISE_STD:
+            canvas += np.random.normal(0.0, PILL_BG_NOISE_STD, (H, W, 3))
+        return np.clip(canvas, 0, 255).astype(np.uint8)
+
+    def blank_canvas(self, H, W, rng):
+        """인공 배경을 만듭니다. `CP_BG_MODE` 로 방식을 고릅니다.
+
+            "fixed"  ★ 기본 — 실측 고정 배경색 (재현성 최고)
+            "crops"  크롭 이미지 배경의 색조(H,S)만 표본에서 뽑아 씀
+            "random" 완전 무작위 단색
+        """
+        mode = str(CP_BG_MODE).lower()
+
+        if mode == "fixed":
+            self.stats["고정 배경"] += 1
+            return self.fixed_canvas(H, W, rng)
+        if mode == "random":
+            self.stats["랜덤 배경"] += 1
+            return self.random_canvas(H, W, rng)
+
+        # mode == "crops" — 표본이 없으면 고정 배경으로 되돌아갑니다.
+        if not (CP_BG_FROM_CROPS and self.bg_tones):
+            self.stats["고정 배경(대체)"] += 1
+            return self.fixed_canvas(H, W, rng)
+
+        hue, sat = self.bg_tones[rng.randrange(len(self.bg_tones))]
+        hue = (hue + rng.uniform(-CP_BG_HUE_JITTER, CP_BG_HUE_JITTER)) % 180.0
+        sat = float(np.clip(sat * rng.uniform(*CP_BG_S_SCALE), 0.0, 255.0))
+        val = float(rng.uniform(*CP_BG_V_RANGE))          # ★ 밝기는 새로 뽑음
+
+        g = CP_BG_GRAD
+        gy = np.linspace(rng.uniform(-g, g), rng.uniform(-g, g), H)[:, None]
+        gx = np.linspace(rng.uniform(-g, g), rng.uniform(-g, g), W)[None, :]
+
+        hsv = np.empty((H, W, 3), np.float32)
+        hsv[..., 0] = hue
+        hsv[..., 1] = sat
+        hsv[..., 2] = np.clip(
+            val + gy + gx + np.random.normal(0, CP_BG_NOISE, (H, W)), 0, 255
+        )
+        canvas = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR).astype(np.float32)
+        canvas += np.random.normal(0, CP_BG_NOISE, (H, W, 3))
+        self.stats["색조 배경"] += 1
         return np.clip(canvas, 0, 255).astype(np.uint8)
 
     # ---------- 그림자 ----------
@@ -1666,7 +2406,7 @@ def _collect_split(src_root: Path, split: str) -> List[Dict[str, Any]]:
 
 
 def build_augmented_yolo_dataset(
-    src_root: PathLike,
+    src_root: Optional[PathLike] = None,
     dst_root: Optional[PathLike] = None,
     geom_mult: Optional[int] = None,
     n_synth: Optional[int] = None,
@@ -1676,8 +2416,10 @@ def build_augmented_yolo_dataset(
     cp_weighted: bool = True,
     max_crops_per_class: Optional[int] = None,
     crops_dir: Optional[PathLike] = None,   # ★ cropped_pills_review 경로
+    cutout_check_dir: Optional[PathLike] = None,   # ★ 컷아웃 검수 저장(cutcheck)
     rebuild_crop_cache: bool = False,
     preprocess_val_test: bool = True,
+    force: bool = False,          # ★ True 면 사전검증 실패해도 강행
     seed: Optional[int] = None,
     overwrite: bool = True,
     verbose: bool = True,
@@ -1686,7 +2428,8 @@ def build_augmented_yolo_dataset(
 
     Args:
         src_root: `pill_detection_dataset.ipynb` 가 만든 폴더.
-                  images/{train,val,test}, labels/{train,val,test}, data.yaml 필요.
+                  images/train, labels/train, data.yaml 이 필수이고
+                  val/test 는 있으면 쓰고 없으면 건너뜁니다.
         dst_root: 결과 폴더. None 이면 `<src_root>_aug`.
         geom_mult: ★ train 이미지 1장당 최종 장수. 3 이면 원본 1 + 증강 2.
                    1 이면 기하 증강 없음(원본만).
@@ -1695,15 +2438,18 @@ def build_augmented_yolo_dataset(
                    train 이미지에서 컷아웃하지 않고 이 폴더의 크롭 이미지로 씁니다.
                    None 이면 전역 `CROPPED_PILLS_DIR` 을 따릅니다.
         cp_weighted: True 면 희소 클래스를 더 자주 붙여 불균형을 완화합니다.
-        preprocess_val_test: val/test 에도 동일 전처리(WB+CLAHE)를 적용할지.
+        preprocess_val_test: train 이외 split 에도 동일 전처리(WB+CLAHE)를 적용할지.
                    ★ train 에만 걸면 분포가 어긋나므로 기본 True 를 권장합니다.
 
     Returns:
         생성된 `data.yaml` 의 절대 경로 문자열.
 
     주의:
-        val / test 에는 **증강을 적용하지 않습니다.** 전처리만 동일하게 겁니다.
-        증강본은 train 원본에서만 파생되므로 데이터 누수가 원천 차단됩니다.
+        train 이외 split 에는 **증강을 적용하지 않습니다.** 전처리만 동일하게 겁니다.
+        ★ val 폴더가 비어 있으면(= 홀드아웃 없이 전체를 train 으로 쓰는 구성)
+          data.yaml 의 `val:` 이 자동으로 `images/train` 을 가리킵니다.
+          Ultralytics 가 val 경로를 요구하기 때문이며, 이때 val 지표는
+          학습 데이터에 대한 점수이므로 일반화 성능이 아닙니다.
     """
     # ★ 인자를 안 넘기면 "지금 이 순간의" 전역 설정값을 씁니다.
     #   (파일 상단 CONFIG 블록을 바꾸거나 노트북에서 pt.DEFAULT_GEOM_MULT = 5 처럼
@@ -1722,6 +2468,15 @@ def build_augmented_yolo_dataset(
         seed = SEED
 
     t0 = time.time()
+
+    # ★ 경로를 안 넘기면 configure() 가 설정한 팀 표준 경로를 씁니다.
+    if src_root is None:
+        if DATASET_DIR is None:
+            configure(verbose=False)
+        src_root = DATASET_DIR
+    if dst_root is None and AUG_DATASET_DIR:
+        dst_root = AUG_DATASET_DIR
+
     src_root = Path(src_root).resolve()
     dst_root = Path(dst_root).resolve() if dst_root else src_root.parent / f"{src_root.name}_aug"
 
@@ -1729,6 +2484,20 @@ def build_augmented_yolo_dataset(
         raise ValueError("geom_mult 는 1 이상이어야 합니다. (1 = 증강 없음)")
     if n_synth < 0:
         raise ValueError("n_synth 는 0 이상이어야 합니다. (0 = Copy&Paste 끔)")
+
+    # ---------- ★ 사전검증 → 실행 (팀 공유 가이드와 동일한 2단계) ----------
+    if not force:
+        report = preflight(
+            src_root=src_root, dst_root=dst_root, crops_dir=crops_dir,
+            geom_mult=geom_mult, n_synth=n_synth, verbose=verbose,
+        )
+        if not report["ok"]:
+            raise RuntimeError(
+                "사전검증(preflight) 실패 — 실제 생성을 중단했습니다.\n"
+                + "\n".join(f"  · {m}" for m in report["errors"])
+                + "\n→ 위 항목을 고친 뒤 다시 실행하세요. "
+                  "(검증을 건너뛰려면 force=True)"
+            )
 
     # ---------- 0. 입력 확인 ----------
     if not (src_root / "images" / "train").is_dir():
@@ -1836,11 +2605,15 @@ def build_augmented_yolo_dataset(
         _crops_dir = crops_dir if crops_dir is not None else CROPPED_PILLS_DIR
         if verbose and _crops_dir:
             print(f"    ★ 재료 소스: cropped_pills_review → {_crops_dir}")
+        _check_dir = cutout_check_dir if cutout_check_dir is not None else CUTOUT_CHECK_DIR
         lib = PillCropLibrary(
             cache_dir=dst_root / "_crop_cache",
             max_per_class=max_crops_per_class,
             crops_dir=_crops_dir,
+            check_dir=_check_dir,
         ).build(train_recs, rebuild=rebuild_crop_cache, verbose=verbose, names=names)
+        if verbose and _check_dir:
+            print(f"    ★ 컷아웃 검수 저장 → {_check_dir}")
 
         n_items = sum(len(v) for v in lib.items.values())
         if verbose:
@@ -1878,11 +2651,27 @@ def build_augmented_yolo_dataset(
     elif verbose:
         print("[3-4/5] Copy&Paste 건너뜀 (n_synth=0)")
 
-    # ---------- 5. val / test — 증강 없이 전처리만 ----------
-    if verbose:
-        print("[5/5] val / test 복사 (증강 없음, 전처리만)")
+    # ---------- 5. train 이외 split — 증강 없이 전처리만 ----------
+    #  ★ images/ 아래에 train 이 아닌 폴더가 있으면 전부 처리합니다.
+    #     (val, test 외에 02 가 만드는 'all' = 원본 전체 split 포함)
+    extra_splits = []
+    _img_root = src_root / "images"
+    if _img_root.is_dir():
+        extra_splits = [d.name for d in sorted(_img_root.iterdir())
+                        if d.is_dir() and d.name not in ("train", "val", "test")]
 
-    for split, recs in (("val", val_recs), ("test", test_recs)):
+    split_recs = [("val", val_recs), ("test", test_recs)]
+    for sp in extra_splits:
+        (dst_root / "images" / sp).mkdir(parents=True, exist_ok=True)
+        (dst_root / "labels" / sp).mkdir(parents=True, exist_ok=True)
+        split_recs.append((sp, _collect_split(src_root, sp)))
+
+    if verbose:
+        _named = [s_ for s_, r_ in split_recs if r_]
+        print("[5/5] " + (" / ".join(_named) + " 복사 (증강 없음, 전처리만)"
+                          if _named else "train 이외 split 없음 — 건너뜀"))
+
+    for split, recs in split_recs:
         for r in recs:
             dst_img = dst_root / "images" / split / r["file_name"]
             if preprocess_val_test:
@@ -1899,10 +2688,23 @@ def build_augmented_yolo_dataset(
             counts[split] += 1
 
     # ---------- 6. data.yaml + 기록 ----------
+    # ★ 홀드아웃(val/test)이 없는 구성 — 원본 전부를 train 으로 쓰는 경우
+    #   Ultralytics 는 val 경로가 반드시 있어야 하므로 train 을 그대로 가리킵니다.
+    #   이때 val 지표는 "학습 데이터에 대한 점수"이므로 낙관적입니다 (일반화 성능 아님).
+    val_from_train = counts["val"] == 0
+    if val_from_train and verbose:
+        print("\n⚠️  val 이미지가 없습니다 — data.yaml 의 val 을 images/train 으로 지정합니다.")
+        print("    (전체를 train 으로 쓰는 구성. val mAP 는 학습 데이터 점수이니 참고용으로만 보세요)")
+
     yaml_path = dst_root / "data.yaml"
     with open(yaml_path, "w", encoding="utf-8") as f:
         f.write(f"path: {dst_root}\n")
-        f.write("train: images/train\nval: images/val\ntest: images/test\n")
+        f.write("train: images/train\n")
+        f.write("val: images/train\n" if val_from_train else "val: images/val\n")
+        if counts["test"]:
+            f.write("test: images/test\n")
+        for sp in extra_splits:
+            f.write(f"{sp}: images/{sp}\n")
         f.write(f"nc: {len(names)}\nnames:\n")
         for i, n in enumerate(names):
             f.write(f"  {i}: {n}\n")
@@ -1913,16 +2715,25 @@ def build_augmented_yolo_dataset(
         "n_synth": n_synth,
         "cp_mode": cp_mode,
         "crops_dir": str(crops_dir if crops_dir is not None else CROPPED_PILLS_DIR or ""),
+        "cutout_check_dir": str(cutout_check_dir if cutout_check_dir is not None
+                                else CUTOUT_CHECK_DIR or ""),
+        "cp_bg_mode": CP_BG_MODE,
+        "cp_bg_fixed_rgb": list(PILL_BG_RGB),
+        "cp_bg_fixed_hex": PILL_BG_HEX,
+        "pad_fill_rgb": list(PILL_BG_RGB) if USE_BG_PAD else [0, 0, 0],
+        "cp_bg_from_crops": CP_BG_FROM_CROPS,
         "cp_weighted": cp_weighted,
         "use_flip": use_flip,
         "preprocess": {
             "white_balance": USE_WHITE_BALANCE,
             "clahe": USE_CLAHE,
             "clahe_clip": CLAHE_CLIP,
+            "clahe_grid": CLAHE_GRID,
             "applied_to": "train/val/test 전부",
         },
         "counts": dict(counts),
         "box_counts": dict(box_counts),
+        "val_from_train": val_from_train,   # ★ 홀드아웃 없이 전체를 train 으로 쓴 구성
         "seed": seed,
     }
     (dst_root / "augment_info.json").write_text(
@@ -1936,15 +2747,19 @@ def build_augmented_yolo_dataset(
         print("\n■ 생성 결과")
         print(f"  train  원본 {counts['orig']:,} + 증강 {counts['aug']:,} "
               f"+ Copy&Paste {counts['cp']:,} = {n_train:,}장")
-        print(f"  val    {counts['val']:,}장 / test {counts['test']:,}장")
+        if val_from_train:
+            print("  val    없음 → data.yaml 의 val 이 images/train 을 가리킵니다")
+        else:
+            print(f"  val    {counts['val']:,}장 / test {counts['test']:,}장")
+        for sp in extra_splits:
+            print(f"  {sp:<6} {counts[sp]:,}장  (04·05 가 쓰는 원본 전체 split)")
         ok = (counts["orig"] + counts["aug"]) == target
         print(f"\n  ★ 기하 증강 검산 {counts['orig'] + counts['aug']:,} / 목표 {target:,}장 "
               f"{'✅' if ok else '⚠️ 박스 전멸로 일부 손실'}")
         if n_synth:
             print(f"  ★ Copy&Paste  {counts['cp']:,} / 목표 {n_synth:,}장 "
                   f"{'✅' if counts['cp'] == n_synth else '⚠️ 배치 실패분 손실'}")
-        print(f"\n  전처리(WB={USE_WHITE_BALANCE}, CLAHE={USE_CLAHE}) → "
-              f"train/val/test 전부 적용 ✅")
+        print(f"\n  전처리(WB={USE_WHITE_BALANCE}, CLAHE={USE_CLAHE}) → 모든 split 에 적용 ✅")
         print(f"  소요 시간 {time.time() - t0:.1f}초")
         print(f"\n★ data.yaml = {yaml_path}")
 
@@ -2007,15 +2822,391 @@ def preview_augmented(
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  셀프 테스트 — import 할 때는 실행되지 않습니다.
+#  셀프 테스트 — 주피터에서도 `pt.selftest()` 로 바로 돌릴 수 있습니다.
 # ═══════════════════════════════════════════════════════════════════════════
 
-if __name__ == "__main__":
+def check_paths(verbose: bool = True) -> Dict[str, bool]:
+    """★ 노트북 첫 셀에서 경로가 실제로 존재하는지 확인합니다.
+
+        import pill_transforms as pt
+        pt.configure()      # 내부에서 이 함수를 호출합니다
+        pt.check_paths()
+    """
+    if PROJECT_ROOT is None:
+        configure(verbose=False)
+
+    required = {"DATASET_DIR"}
+    optional_note = {
+        "CUTOUT_CHECK_DIR": "실행할 때 자동으로 만들어집니다",
+        "AUG_DATASET_DIR": "증강 실행 시 만들어집니다",
+        "TEAM_WORK_DIR": "AI Hub 추가 데이터를 쓸 때만 필요합니다",
+        "CROPPED_PILLS_DIR": "없으면 train 라벨 박스에서 직접 컷아웃합니다",
+    }
+
+    out: Dict[str, bool] = {}
+    for k, v in current_paths().items():
+        exists = bool(v) and Path(v).is_dir()
+        out[k] = exists
+        if verbose:
+            if exists:
+                mark = "✅"
+            elif k in required:
+                mark = "❌ 없음(필수)"
+            else:
+                mark = "— " + optional_note.get(k, "")
+            print(f"  {k:<18} {v}  {mark}")
+    if verbose:
+        print(f"  {'배경색(고정)':<18} {PILL_BG_HEX}  RGB{PILL_BG_RGB} / "
+              f"BGR{PILL_BG_BGR}  mode={CP_BG_MODE}")
+    return out
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Part 8. ★ 사전검증(preflight) → 실행(execute)
+#            AI Hub 팀 공유 가이드와 동일한 2단계 흐름입니다.
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _disp_width(text: str) -> int:
+    """한글·전각 문자를 2칸으로 계산합니다 (표 정렬용)."""
+    import unicodedata
+
+    return sum(2 if unicodedata.east_asian_width(ch) in "WF" else 1 for ch in text)
+
+
+def _pad(text: str, width: int, right: bool = False) -> str:
+    gap = " " * max(0, width - _disp_width(text))
+    return gap + text if right else text + gap
+
+
+def _fmt_row(label: str, value: Any, criterion: str = "") -> str:
+    return f"  {_pad(label, 26)}{_pad(str(value), 12, right=True)}   {criterion}"
+
+
+def preflight(
+    src_root: Optional[PathLike] = None,
+    dst_root: Optional[PathLike] = None,
+    crops_dir: Optional[PathLike] = None,
+    geom_mult: Optional[int] = None,
+    n_synth: Optional[int] = None,
+    verbose: bool = True,
+) -> Dict[str, Any]:
+    """★ 1단계 — 파일을 하나도 만들지 않고 입력만 검증합니다.
+
+        import pill_transforms as pt
+        pt.configure()
+        rep = pt.preflight()
+        rep["ok"]        # True 면 build_augmented_yolo_dataset() 실행 가능
+
+    반드시 0 이어야 하는 항목
+        · bbox 오류 수
+        · 이미지 읽기 오류 수
+        · 클래스 ID 범위 오류 수
+        · 라벨 파일 없는 이미지 수
+    허용되는 항목
+        · 크롭 폴더 미매칭(그만큼 Copy&Paste 재료가 줄어듭니다)
+        · 기존 출력 폴더 존재(overwrite=True 로 덮어씁니다)
+    """
+    if src_root is None:
+        if DATASET_DIR is None:
+            configure(verbose=False)
+        src_root = DATASET_DIR
+    if dst_root is None and AUG_DATASET_DIR:
+        dst_root = AUG_DATASET_DIR
+    if geom_mult is None:
+        geom_mult = DEFAULT_GEOM_MULT
+    if n_synth is None:
+        n_synth = DEFAULT_N_SYNTH
+
+    src_root = Path(src_root)
+    dst_root = Path(dst_root) if dst_root else src_root.parent / f"{src_root.name}_aug"
+    _cd = crops_dir if crops_dir is not None else CROPPED_PILLS_DIR
+    crops_path = Path(_cd) if _cd else None
+
+    rep: Dict[str, Any] = {
+        "src_root": str(src_root), "dst_root": str(dst_root),
+        "crops_dir": str(crops_path) if crops_path else None,
+        "geom_mult": int(geom_mult), "n_synth": int(n_synth),
+        "errors": [], "warnings": [],
+    }
+
+    if verbose:
+        print("═" * 66)
+        print("  사전검증 (preflight) — 파일을 만들지 않습니다")
+        print(f"  입력 {src_root}")
+        print(f"  출력 {dst_root}")
+        print("═" * 66)
+
+    # ---------- 1. 필수 폴더 ----------
+    img_dir, lbl_dir = src_root / "images" / "train", src_root / "labels" / "train"
+    if not img_dir.is_dir():
+        rep["errors"].append(
+            f"{img_dir} 가 없습니다 → pill_detection_dataset.ipynb 의 "
+            "YOLO 내보내기 셀을 먼저 실행하세요."
+        )
+    if not lbl_dir.is_dir():
+        rep["errors"].append(f"{lbl_dir} 가 없습니다.")
+    if rep["errors"]:
+        rep["ok"] = False
+        if verbose:
+            for m in rep["errors"]:
+                print("  ❌ " + m)
+        return rep
+
+    # ---------- 2. data.yaml / 클래스 ----------
+    names: List[str] = []
+    yaml_path = src_root / "data.yaml"
+    if yaml_path.exists():
+        try:
+            import yaml
+
+            cfg = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+            raw = cfg.get("names", [])
+            names = ([raw[k] for k in sorted(raw, key=lambda v: int(v))]
+                     if isinstance(raw, dict) else list(raw))
+        except Exception as e:
+            rep["warnings"].append(f"data.yaml 을 읽지 못했습니다: {e}")
+    else:
+        rep["warnings"].append("data.yaml 이 없습니다 (클래스 이름 없이 진행)")
+    rep["num_classes_yaml"] = len(names)
+
+    # ---------- 3. 이미지 · 라벨 검증 ----------
+    exts = (".png", ".jpg", ".jpeg", ".bmp", ".webp")
+    imgs = [q for q in sorted(img_dir.iterdir()) if q.suffix.lower() in exts]
+    n_img = len(imgs)
+    n_read_err = n_missing_lbl = n_empty_lbl = n_bbox_err = n_cls_err = 0
+    n_box = 0
+    seen_cls: set = set()
+    sizes: Counter = Counter()
+
+    for q in imgs:
+        im = imread_unicode(q)
+        if im is None:
+            n_read_err += 1
+            continue
+        H, W = im.shape[:2]
+        sizes[(W, H)] += 1
+        lp = lbl_dir / f"{q.stem}.txt"
+        if not lp.exists():
+            n_missing_lbl += 1
+            continue
+        raw_lines = [ln for ln in lp.read_text(encoding="utf-8").splitlines() if ln.strip()]
+        if not raw_lines:
+            n_empty_lbl += 1
+            continue
+        for ln in raw_lines:
+            parts = ln.split()
+            if len(parts) < 5:
+                n_bbox_err += 1
+                continue
+            try:
+                c = int(float(parts[0]))
+                cx, cy, bw, bh = (float(v) for v in parts[1:5])
+            except ValueError:
+                n_bbox_err += 1
+                continue
+            if not (0.0 <= cx <= 1.0 and 0.0 <= cy <= 1.0) or bw <= 0 or bh <= 0 \
+                    or bw > 1.0 or bh > 1.0:
+                n_bbox_err += 1
+                continue
+            if c < 0 or (names and c >= len(names)):
+                n_cls_err += 1
+                continue
+            seen_cls.add(c)
+            n_box += 1
+
+    rep.update({
+        "train_images": n_img, "train_boxes": n_box,
+        "image_read_errors": n_read_err, "missing_labels": n_missing_lbl,
+        "empty_labels": n_empty_lbl, "bbox_errors": n_bbox_err,
+        "class_id_errors": n_cls_err, "classes_in_train": len(seen_cls),
+        "image_sizes": {f"{w}x{h}": c for (w, h), c in sizes.most_common(5)},
+    })
+
+    if n_img == 0:
+        rep["errors"].append("train 이미지가 0장입니다.")
+    if n_read_err:
+        rep["errors"].append(f"이미지 읽기 오류 {n_read_err}장")
+    if n_bbox_err:
+        rep["errors"].append(f"bbox 오류 {n_bbox_err}건 (좌표가 0~1 정규화값인지 확인)")
+    if n_cls_err:
+        rep["errors"].append(f"클래스 ID 범위 오류 {n_cls_err}건 (data.yaml 의 nc 와 불일치)")
+    if n_missing_lbl:
+        rep["errors"].append(f"라벨 파일이 없는 이미지 {n_missing_lbl}장")
+    if n_empty_lbl:
+        rep["warnings"].append(f"박스가 0개인 라벨 {n_empty_lbl}장 (배경 이미지로 처리)")
+
+    # ---------- 4. val / test ----------
+    for sp in ("val", "test"):
+        d = src_root / "images" / sp
+        rep[f"{sp}_images"] = len([q for q in d.iterdir() if q.suffix.lower() in exts]) \
+            if d.is_dir() else 0
+    if rep["val_images"] == 0:
+        rep["warnings"].append(
+            "val 이미지가 없습니다 → data.yaml 의 val 이 images/train 을 가리킵니다 "
+            "(val 지표는 학습 데이터 점수이므로 일반화 성능이 아닙니다)"
+        )
+
+    # ---------- 5. Copy & Paste 재료 ----------
+    matched = unmatched = n_crop_files = 0
+    unmatched_names: List[str] = []
+    if n_synth and crops_path is not None:
+        if not crops_path.is_dir():
+            rep["warnings"].append(
+                f"크롭 폴더가 없습니다: {crops_path} → train 라벨 박스에서 직접 컷아웃합니다"
+            )
+        else:
+            lut = _build_name_lookup(names) if names else {}
+            for d in sorted(x for x in crops_path.iterdir() if x.is_dir()):
+                files = [f for f in d.iterdir()
+                         if f.suffix.lower() in CROPPED_PILLS_EXTS]
+                if not files:
+                    continue
+                cid = _match_class_id(d.name, lut) if lut else None
+                if cid is None:
+                    unmatched += 1
+                    if len(unmatched_names) < 5:
+                        unmatched_names.append(d.name)
+                else:
+                    matched += 1
+                    n_crop_files += len(files)
+            if matched == 0:
+                rep["warnings"].append(
+                    "크롭 폴더의 클래스를 하나도 매칭하지 못했습니다 "
+                    "(폴더명이 '{category_id}_{category_name}' 형식인지 확인)"
+                )
+            if unmatched:
+                rep["warnings"].append(
+                    f"매칭 실패 폴더 {unmatched}개 예: {', '.join(unmatched_names)}"
+                )
+    rep.update({"crops_classes_matched": matched, "crops_classes_unmatched": unmatched,
+                "crops_files": n_crop_files})
+
+    # ---------- 6. 출력 충돌 ----------
+    existing = 0
+    d = dst_root / "images" / "train"
+    if d.is_dir():
+        existing = len([q for q in d.iterdir() if q.suffix.lower() in exts])
+        if existing:
+            rep["warnings"].append(
+                f"기존 출력 {existing}장이 있습니다 → overwrite=True 면 폴더를 비우고 다시 만듭니다"
+            )
+    rep["existing_output_images"] = existing
+
+    # ---------- 7. 예상 산출량 ----------
+    rep["expected_train_images"] = n_img * int(geom_mult) + int(n_synth)
+    rep["ok"] = not rep["errors"]
+
+    if verbose:
+        print(_fmt_row("train 이미지 수", f"{n_img:,}", ""))
+        print(_fmt_row("train bbox 수", f"{n_box:,}", ""))
+        print(_fmt_row("data.yaml 클래스 수", len(names), "≥ 1"))
+        print(_fmt_row("train 등장 클래스 수", len(seen_cls), "data.yaml 이하"))
+        print(_fmt_row("이미지 읽기 오류", n_read_err, "0 이어야 실행 가능"))
+        print(_fmt_row("라벨 없는 이미지", n_missing_lbl, "0 이어야 실행 가능"))
+        print(_fmt_row("bbox 오류", n_bbox_err, "0 이어야 실행 가능"))
+        print(_fmt_row("클래스 ID 오류", n_cls_err, "0 이어야 실행 가능"))
+        print(_fmt_row("val / test 이미지", f"{rep['val_images']:,} / {rep['test_images']:,}",
+                       "0 이어도 됨"))
+        print(_fmt_row("크롭 클래스 매칭", f"{matched} / {matched + unmatched}",
+                       "미매칭은 허용(재료만 감소)"))
+        print(_fmt_row("크롭 이미지 수", f"{n_crop_files:,}", ""))
+        print(_fmt_row("기존 출력 이미지", f"{existing:,}", "overwrite=True 면 재생성"))
+        print(_fmt_row("배경 모드", CP_BG_MODE, f"{PILL_BG_HEX} RGB{PILL_BG_RGB}"))
+        print(_fmt_row("예상 생성 train 수",
+                       f"{rep['expected_train_images']:,}",
+                       f"{n_img:,}×{geom_mult} + CP {n_synth:,}"))
+        for m in rep["warnings"]:
+            print("  ⚠️  " + m)
+        for m in rep["errors"]:
+            print("  ❌ " + m)
+        print("─" * 66)
+        print("  ✅ 사전검증 통과 — 실제 생성을 실행할 수 있습니다."
+              if rep["ok"] else
+              "  ❌ 사전검증 실패 — 위 항목을 고친 뒤 다시 실행하세요.")
+    return rep
+
+
+def bg_check(image_path: PathLike, verbose: bool = True) -> Dict[str, Any]:
+    """★ 고정 배경색이 내 crop 이미지와 실제로 맞는지 확인합니다.
+
+        python pill_transforms.py --bg-check "/path/to/3351_.../K-0033....png"
+
+    상단 라벨바와 테두리를 제외한 뒤 알약 외접 타원 바깥 픽셀의 median 을
+    구해 `PILL_BG_BGR` 과 비교합니다. 채널 차이가 12 이내면 통과로 봅니다.
+    """
+    img = imread_unicode(image_path)
+    if img is None:
+        raise FileNotFoundError(f"이미지를 읽지 못했습니다: {image_path}")
+
+    h, w = img.shape[:2]
+    # 상단 라벨바(어두운 단색 띠) 제거
+    rows = np.where(np.abs(img.reshape(h, -1, 3).mean(axis=1)
+                           - np.array(CROP_LABEL_BAR_RGB[::-1])).max(axis=1) < 30)[0]
+    y0 = int(rows.max()) + 1 if rows.size and rows.min() == 0 else 0
+    # 파란 테두리 여유분 제거
+    m = 4
+    inner = img[y0 + m:h - m, m:w - m]
+    if inner.size == 0 or min(inner.shape[:2]) < 16:
+        inner = img
+    ih, iw = inner.shape[:2]
+    yy, xx = np.mgrid[0:ih, 0:iw]
+    rr = np.sqrt(((yy - (ih - 1) / 2) / (ih / 2)) ** 2 + ((xx - (iw - 1) / 2) / (iw / 2)) ** 2)
+    px = inner[rr > 1.06]
+    if px.shape[0] < 50:
+        px = inner.reshape(-1, 3)
+
+    med = np.median(px, axis=0)
+    diff = np.abs(med - np.array(PILL_BG_BGR, dtype=float))
+    ok = bool(diff.max() <= 12)
+    out = {
+        "measured_bgr": [int(v) for v in med],
+        "measured_rgb": [int(v) for v in med[::-1]],
+        "fixed_bgr": list(PILL_BG_BGR),
+        "max_channel_diff": float(diff.max()),
+        "ok": ok,
+        "n_pixels": int(px.shape[0]),
+    }
+    if verbose:
+        print(f"  파일          {Path(image_path).name}")
+        print(f"  측정 배경 RGB {tuple(out['measured_rgb'])}")
+        print(f"  고정 배경 RGB {PILL_BG_RGB}  {PILL_BG_HEX}")
+        print(f"  최대 채널 차이 {diff.max():.1f}  "
+              + ("✅ 일치" if ok else "⚠️ 차이가 큽니다 — PILL_BG_* 를 재측정하세요"))
+    return out
+
+
+def selftest(verbose: bool = True) -> bool:
+    """더미 데이터로 전체 파이프라인을 한 번 돌려 봅니다.
+
+    노트북에서:
+        import pill_transforms as pt
+        pt.selftest()
+
+    실제 데이터를 건드리지 않고 임시 폴더에서만 동작하며,
+    끝나면 임시 폴더를 지웁니다. 오류 없이 True 가 나오면
+    이 환경에서 모듈이 정상 동작한다는 뜻입니다.
+    """
     import tempfile
+
+    global CROPPED_PILLS_DIR, CUTOUT_CHECK_DIR
+    _keep = (CROPPED_PILLS_DIR, CUTOUT_CHECK_DIR)
 
     print("■ 셀프 테스트 (더미 데이터)")
     tmp = Path(tempfile.mkdtemp())
     src = tmp / "processed"
+
+    # 실제 경로를 건드리지 않도록 임시 크롭 폴더를 만들어 씁니다.
+    _crops = tmp / "cropped_pills_review"
+    for j, nm in enumerate(["A", "B", "C"]):
+        d = _crops / nm
+        d.mkdir(parents=True, exist_ok=True)
+        for k in range(3):
+            c_ = np.full((120, 120, 3), (190, 205, 215), np.uint8)
+            cv2.ellipse(c_, (60, 60), (38, 28), 30 * k, 0, 360,
+                        (60 + 40 * j, 90, 200 - 30 * j), -1)
+            imwrite_unicode(d / f"crop_{k}.png", c_)
+    CROPPED_PILLS_DIR = str(_crops)
+    CUTOUT_CHECK_DIR = str(tmp / "cutcheck")
 
     # 더미 YOLO 데이터셋 생성
     for split, n in (("train", 6), ("val", 2), ("test", 2)):
@@ -2055,14 +3246,135 @@ if __name__ == "__main__":
 
     preview_augmented(dst, per_kind=1, names=["A", "B", "C"])
 
+    # ---- ★ 고정 배경색 검증 ----
+    canvas = CopyPasteAugmentor.fixed_canvas(160, 160, random.Random(0))
+    med = np.median(canvas.reshape(-1, 3), axis=0)
+    dif = float(np.abs(med - np.array(PILL_BG_BGR, float)).max())
+    print(f"\n고정 배경색 {PILL_BG_HEX} RGB{PILL_BG_RGB} — "
+          f"생성 캔버스 median BGR {tuple(int(v) for v in med)} (차이 {dif:.1f})")
+    assert dif <= 3.0, f"고정 배경색이 상수와 다릅니다: {med}"
+
+    # ---- ★ letterbox 좌표 복원 검증 (추론에서 제출 좌표를 만드는 경로) ----
+    meta = letterbox_meta(1280, 976, image_size=640)
+    sc, pl, pt_ = meta["scale"], meta["pad_left"], meta["pad_top"]
+    orig = np.array([[100.0, 150.0, 300.0, 400.0]])
+    boxed = orig * sc + np.array([pl, pt_, pl, pt_], float)
+    back = undo_letterbox_boxes(boxed, meta)
+    err = float(np.abs(back - orig).max())
+    print(f"letterbox 복원 오차 {err:.4f}px  (scale {sc:.4f}, pad {pl}/{pt_})")
+    assert err < 1e-3, f"letterbox 복원이 틀렸습니다: {back}"
+
+    # ---- ★ preflight 가 잘못된 라벨을 잡아내는지 ----
+    bad = src / "labels" / "train" / "train_0.txt"
+    keep = bad.read_text(encoding="utf-8")
+    bad.write_text("0 1.7 0.5 0.2 0.2", encoding="utf-8")
+    rep_bad = preflight(src, dst_root=tmp / "never", verbose=False)
+    bad.write_text(keep, encoding="utf-8")
+    print(f"preflight 오류 감지 테스트 — ok={rep_bad['ok']} "
+          f"(bbox 오류 {rep_bad['bbox_errors']}건)")
+    assert rep_bad["ok"] is False and rep_bad["bbox_errors"] >= 1
+
     if HAS_ALBUMENTATIONS:
         tf = get_train_transform(image_size=320, to_tensor=False)
         r = tf(image=np.random.randint(0, 255, (1280, 976, 3), np.uint8),
                bboxes=[[100, 150, 300, 400]], labels=[1])
         print(f"\nAlbumentations 파이프라인 OK — image {r['image'].shape}, "
-              f"bboxes {len(r['bboxes'])}")
+              f"bboxes {len(r['bboxes'])}  |  패딩 RGB {pad_fill_value()}")
     else:
         print("\n(albumentations 미설치 — 온라인 transform 테스트는 건너뜀)")
 
-    shutil.rmtree(tmp)
-    print("\n■ 모든 테스트 통과")
+    n_cut = len(list(Path(CUTOUT_CHECK_DIR).glob("*/cut/*.png")))
+    print(f"\n컷아웃 검수 산출물 {n_cut}장 (임시 폴더)")
+
+    shutil.rmtree(tmp, ignore_errors=True)
+    CROPPED_PILLS_DIR, CUTOUT_CHECK_DIR = _keep
+    print("\n✅ 셀프 테스트 통과 — 이 환경에서 pill_transforms 가 정상 동작합니다.")
+    return True
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  CLI — 팀 공유 가이드와 동일하게 "먼저 --preflight, 성공하면 --execute"
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(
+        prog="pill_transforms.py",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="알약 검출 전처리 / 증강 모듈 (사전검증 → 실행)",
+        epilog=(
+            "예시\n"
+            "  1) 사전검증 (파일을 만들지 않습니다)\n"
+            "     python pill_transforms.py --preflight\n"
+            "  2) 실제 생성\n"
+            "     python pill_transforms.py --execute --geom-mult 3 --n-synth 600\n"
+            "  3) 고정 배경색 확인\n"
+            "     python pill_transforms.py --bg-check /path/to/crop.png\n"
+            "  4) 환경 점검\n"
+            "     python pill_transforms.py --selftest\n"
+        ),
+    )
+    ap.add_argument("--project-root", help="프로젝트 루트 (미지정 시 자동 감지)")
+    ap.add_argument("--src-root", help="원본 YOLO 데이터셋 (기본 data/processed)")
+    ap.add_argument("--dst-root", help="증강 결과 폴더 (기본 data/processed_aug)")
+    ap.add_argument("--crops-dir", help="Copy&Paste 재료 폴더 (cropped_pills_review)")
+    ap.add_argument("--cutout-check-dir", help="컷아웃 검수 저장 폴더")
+    ap.add_argument("--geom-mult", type=int, default=None,
+                    help=f"train 1장당 최종 장수 (기본 {DEFAULT_GEOM_MULT})")
+    ap.add_argument("--n-synth", type=int, default=None,
+                    help=f"Copy&Paste 합성 장수 (기본 {DEFAULT_N_SYNTH})")
+    ap.add_argument("--cp-bg-mode", choices=["fixed", "crops", "random"], default=None,
+                    help="합성 배경 방식 (기본 fixed = 실측 고정색)")
+    ap.add_argument("--seed", type=int, default=None)
+    ap.add_argument("--preflight", action="store_true", help="사전검증만 (기본 동작)")
+    ap.add_argument("--execute", action="store_true", help="사전검증 후 실제 생성")
+    ap.add_argument("--force", action="store_true", help="사전검증 실패해도 강행")
+    ap.add_argument("--preview", action="store_true", help="생성 후 검수 이미지 저장")
+    ap.add_argument("--bg-check", metavar="IMAGE", help="crop 이미지로 고정 배경색 검증")
+    ap.add_argument("--selftest", action="store_true", help="더미 데이터로 환경 점검")
+    return ap
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    global CP_BG_MODE
+
+    args = _build_parser().parse_args(list(argv) if argv is not None else None)
+
+    if args.bg_check:
+        return 0 if bg_check(args.bg_check)["ok"] else 1
+
+    if args.selftest:
+        return 0 if selftest() else 1
+
+    if args.cp_bg_mode:
+        CP_BG_MODE = args.cp_bg_mode
+
+    configure(
+        project_root=args.project_root,
+        dataset_dir=args.src_root,
+        aug_dataset_dir=args.dst_root,
+        crops_dir=args.crops_dir,
+        cutout_check_dir=args.cutout_check_dir,
+        verbose=True,
+    )
+
+    rep = preflight(geom_mult=args.geom_mult, n_synth=args.n_synth, verbose=True)
+
+    if not args.execute:
+        print("\n※ 검증 전용 모드입니다. 실제로 만들려면 --execute 를 붙이세요.")
+        return 0 if rep["ok"] else 1
+
+    if not rep["ok"] and not args.force:
+        return 1
+
+    yaml_path = build_augmented_yolo_dataset(
+        geom_mult=args.geom_mult, n_synth=args.n_synth,
+        cutout_check_dir=args.cutout_check_dir,
+        seed=args.seed, force=True, verbose=True,
+    )
+    if args.preview:
+        preview_augmented(Path(yaml_path).parent, per_kind=3)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
