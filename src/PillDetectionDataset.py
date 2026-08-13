@@ -403,6 +403,36 @@ class PillDetectionDataset(Dataset):
         y2 = y + height
         category_id = int(annotation_record["category_id"])
 
+        # 추가 데이터 일부는 실제 약 정보가 images에 있음에도 COCO category가
+        # {id: 1, name: 'Drug'}라는 placeholder로 저장되어 있습니다.
+        # 이 경우 drug_N과 dl_name을 사용해 실제 category 정보를 복원합니다.
+        is_placeholder_category = (
+            category_id == 1
+            and self._optional_int(category_record.get("id")) == 1
+            and str(category_record.get("name", "")).strip().lower() == "drug"
+        )
+        if is_placeholder_category:
+            normalized_pill_id = self._normalize_pill_id(image_record.get("drug_N"))
+            if normalized_pill_id is None or not normalized_pill_id.isdigit():
+                raise ValueError(
+                    "placeholder category를 복원할 drug_N이 올바르지 않습니다: "
+                    f"{image_record.get('drug_N')}"
+                )
+
+            category_id = int(normalized_pill_id)
+            drug_name = image_record.get("dl_name")
+            if drug_name is None or not str(drug_name).strip():
+                drug_name = f"K-{normalized_pill_id}"
+
+            # 아래 로직 전체가 보정된 값을 사용하도록 복사본을 갱신합니다.
+            annotation_record["category_id"] = category_id
+            category_record = {
+                **category_record,
+                "id": category_id,
+                "name": str(drug_name),
+                "supercategory": category_record.get("supercategory", "pill"),
+            }
+
         # area 값이 없거나 잘못된 경우 bbox 면적으로 보정합니다.
         area_value = annotation_record.get("area", width * height)
         area = float(area_value)
