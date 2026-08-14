@@ -1,0 +1,88 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000118.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000118.png",
+      "back_color": "연회색 배경",
+      "id": 202608150018,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003351-016688-018147_0_2_0_2_70_000_200.png",
+      "background_patch": [
+        160,
+        960,
+        380,
+        1180
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 27436,
+      "iscrowd": 0,
+      "bbox": [
+        214,
+        777,
+        167,
+        233
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500052,
+      "image_id": 202608150018,
+      "source_object": "K-038162_0_2_1_1_90_040_200.png"
+    },
+    {
+      "area": 31589,
+      "iscrowd": 0,
+      "bbox": [
+        421,
+        121,
+        224,
+        207
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500053,
+      "image_id": 202608150018,
+      "source_object": "K-032310_0_0_1_1_70_180_200.png"
+    },
+    {
+      "area": 39732,
+      "iscrowd": 0,
+      "bbox": [
+        592,
+        807,
+        222,
+        227
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500054,
+      "image_id": 202608150018,
+      "source_object": "K-016262_0_0_0_2_70_340_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 32310,
+      "name": "글리아타민연질캡슐"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

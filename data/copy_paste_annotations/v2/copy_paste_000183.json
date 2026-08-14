@@ -1,0 +1,104 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000183.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000183.png",
+      "back_color": "연회색 배경",
+      "id": 202608150083,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003483-022347-027777-035206_0_2_0_2_70_000_200.png",
+      "background_patch": [
+        400,
+        560,
+        620,
+        780
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 23877,
+      "iscrowd": 0,
+      "bbox": [
+        543,
+        809,
+        174,
+        173
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500279,
+      "image_id": 202608150083,
+      "source_object": "K-016262_0_1_1_0_60_300_200.png"
+    },
+    {
+      "area": 22212,
+      "iscrowd": 0,
+      "bbox": [
+        607,
+        255,
+        168,
+        170
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500280,
+      "image_id": 202608150083,
+      "source_object": "K-016232_0_0_0_2_60_160_200.png"
+    },
+    {
+      "area": 33512,
+      "iscrowd": 0,
+      "bbox": [
+        194,
+        199,
+        207,
+        207
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500281,
+      "image_id": 202608150083,
+      "source_object": "K-016262_0_2_0_0_90_040_200.png"
+    },
+    {
+      "area": 25682,
+      "iscrowd": 0,
+      "bbox": [
+        101,
+        880,
+        236,
+        138
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500282,
+      "image_id": 202608150083,
+      "source_object": "K-038162_0_2_1_1_90_180_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

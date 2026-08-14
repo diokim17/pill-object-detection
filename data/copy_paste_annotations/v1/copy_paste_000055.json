@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000055.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000055.png",
+      "back_color": "연회색 배경",
+      "id": 202608140055,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-020014-035206_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 32374,
+      "iscrowd": 0,
+      "bbox": [
+        157,
+        753,
+        199,
+        256
+      ],
+      "category_id": 30308,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400167,
+      "image_id": 202608140055,
+      "source_object": "K-030308_0_2_0_0_75_260_200.png"
+    },
+    {
+      "area": 30604,
+      "iscrowd": 0,
+      "bbox": [
+        202,
+        140,
+        232,
+        204
+      ],
+      "category_id": 33009,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400168,
+      "image_id": 202608140055,
+      "source_object": "K-033009_0_1_0_2_70_140_200.png"
+    },
+    {
+      "area": 23011,
+      "iscrowd": 0,
+      "bbox": [
+        688,
+        289,
+        138,
+        244
+      ],
+      "category_id": 27993,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400169,
+      "image_id": 202608140055,
+      "source_object": "K-027993_0_2_0_2_90_260_200.png"
+    },
+    {
+      "area": 32386,
+      "iscrowd": 0,
+      "bbox": [
+        525,
+        732,
+        261,
+        167
+      ],
+      "category_id": 31885,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400170,
+      "image_id": 202608140055,
+      "source_object": "K-031885_0_1_0_1_60_340_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 27993,
+      "name": "졸로푸트정 100mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 30308,
+      "name": "트라젠타듀오정 2.5/850mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 31885,
+      "name": "자누메트엑스알서방정 100/1000mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33009,
+      "name": "신바로정"
+    }
+  ]
+}
