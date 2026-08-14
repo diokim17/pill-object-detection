@@ -1,0 +1,88 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000101.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000101.png",
+      "back_color": "연회색 배경",
+      "id": 202608150001,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-002483-012081-012778-025438_0_2_0_2_90_000_200.png",
+      "background_patch": [
+        400,
+        640,
+        620,
+        860
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 25539,
+      "iscrowd": 0,
+      "bbox": [
+        654,
+        736,
+        161,
+        223
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500001,
+      "image_id": 202608150001,
+      "source_object": "K-032310_0_0_1_1_90_140_200.png"
+    },
+    {
+      "area": 25701,
+      "iscrowd": 0,
+      "bbox": [
+        362,
+        200,
+        137,
+        237
+      ],
+      "category_id": 36637,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500002,
+      "image_id": 202608150001,
+      "source_object": "K-036637_0_0_0_0_75_260_200.png"
+    },
+    {
+      "area": 26032,
+      "iscrowd": 0,
+      "bbox": [
+        251,
+        834,
+        184,
+        182
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500003,
+      "image_id": 202608150001,
+      "source_object": "K-016232_0_2_0_1_90_300_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 32310,
+      "name": "글리아타민연질캡슐"
+    },
+    {
+      "supercategory": "pill",
+      "id": 36637,
+      "name": "로수젯정10/5밀리그램"
+    }
+  ]
+}

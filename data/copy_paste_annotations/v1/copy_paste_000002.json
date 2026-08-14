@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000002.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000002.png",
+      "back_color": "연회색 배경",
+      "id": 202608140002,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003483-016262-022347-027733_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 32094,
+      "iscrowd": 0,
+      "bbox": [
+        544,
+        780,
+        230,
+        219
+      ],
+      "category_id": 34597,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400004,
+      "image_id": 202608140002,
+      "source_object": "K-034597_0_0_0_0_70_080_200.png"
+    },
+    {
+      "area": 21697,
+      "iscrowd": 0,
+      "bbox": [
+        341,
+        239,
+        255,
+        100
+      ],
+      "category_id": 16688,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400005,
+      "image_id": 202608140002,
+      "source_object": "K-016688_0_2_1_2_75_080_200.png"
+    },
+    {
+      "area": 27651,
+      "iscrowd": 0,
+      "bbox": [
+        120,
+        850,
+        244,
+        138
+      ],
+      "category_id": 16551,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400006,
+      "image_id": 202608140002,
+      "source_object": "K-016551_0_0_1_2_60_340_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16551,
+      "name": "동아가바펜틴정 800mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16688,
+      "name": "오마코연질캡슐(오메가-3-산에틸에스테르90)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 34597,
+      "name": "제미메트서방정 50/1000mg"
+    }
+  ]
+}

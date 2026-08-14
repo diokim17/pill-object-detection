@@ -1,0 +1,88 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000114.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000114.png",
+      "back_color": "연회색 배경",
+      "id": 202608150014,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003544-004543-016548-027993_0_2_0_2_75_000_200.png",
+      "background_patch": [
+        640,
+        480,
+        860,
+        700
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 23481,
+      "iscrowd": 0,
+      "bbox": [
+        111,
+        844,
+        236,
+        129
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500040,
+      "image_id": 202608150014,
+      "source_object": "K-032310_0_0_0_0_75_040_200.png"
+    },
+    {
+      "area": 29488,
+      "iscrowd": 0,
+      "bbox": [
+        625,
+        699,
+        237,
+        178
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500041,
+      "image_id": 202608150014,
+      "source_object": "K-038162_0_2_1_1_90_200_200.png"
+    },
+    {
+      "area": 27408,
+      "iscrowd": 0,
+      "bbox": [
+        323,
+        212,
+        193,
+        216
+      ],
+      "category_id": 36637,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500042,
+      "image_id": 202608150014,
+      "source_object": "K-036637_0_0_0_2_70_120_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 32310,
+      "name": "글리아타민연질캡슐"
+    },
+    {
+      "supercategory": "pill",
+      "id": 36637,
+      "name": "로수젯정10/5밀리그램"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

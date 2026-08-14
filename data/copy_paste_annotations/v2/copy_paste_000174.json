@@ -1,0 +1,109 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000174.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000174.png",
+      "back_color": "연회색 배경",
+      "id": 202608150074,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003351-018357-020238_0_2_0_2_70_000_200.png",
+      "background_patch": [
+        640,
+        640,
+        860,
+        860
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 29841,
+      "iscrowd": 0,
+      "bbox": [
+        632,
+        291,
+        245,
+        175
+      ],
+      "category_id": 36637,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500243,
+      "image_id": 202608150074,
+      "source_object": "K-036637_0_2_0_1_90_040_200.png"
+    },
+    {
+      "area": 24504,
+      "iscrowd": 0,
+      "bbox": [
+        657,
+        749,
+        175,
+        179
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500244,
+      "image_id": 202608150074,
+      "source_object": "K-016262_0_2_0_1_75_280_200.png"
+    },
+    {
+      "area": 19857,
+      "iscrowd": 0,
+      "bbox": [
+        164,
+        190,
+        158,
+        161
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500245,
+      "image_id": 202608150074,
+      "source_object": "K-016232_0_2_1_0_70_080_200.png"
+    },
+    {
+      "area": 29436,
+      "iscrowd": 0,
+      "bbox": [
+        188,
+        838,
+        221,
+        201
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500246,
+      "image_id": 202608150074,
+      "source_object": "K-038162_0_2_1_1_90_020_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 36637,
+      "name": "로수젯정10/5밀리그램"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

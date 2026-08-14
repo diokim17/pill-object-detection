@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000008.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000008.png",
+      "back_color": "연회색 배경",
+      "id": 202608140008,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-021325-032310_0_2_0_2_75_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 15408,
+      "iscrowd": 0,
+      "bbox": [
+        345,
+        188,
+        140,
+        141
+      ],
+      "category_id": 19607,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400022,
+      "image_id": 202608140008,
+      "source_object": "K-019607_0_1_1_1_70_060_200.png"
+    },
+    {
+      "area": 24258,
+      "iscrowd": 0,
+      "bbox": [
+        169,
+        850,
+        176,
+        178
+      ],
+      "category_id": 4543,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400023,
+      "image_id": 202608140008,
+      "source_object": "K-004543_0_0_1_0_75_060_200.png"
+    },
+    {
+      "area": 27518,
+      "iscrowd": 0,
+      "bbox": [
+        571,
+        749,
+        174,
+        243
+      ],
+      "category_id": 12081,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400024,
+      "image_id": 202608140008,
+      "source_object": "K-012081_0_2_0_0_75_300_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 4543,
+      "name": "에어탈정(아세클로페낙)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 12081,
+      "name": "리렉스펜정 300mg/PTP"
+    },
+    {
+      "supercategory": "pill",
+      "id": 19607,
+      "name": "스토가정 10mg"
+    }
+  ]
+}

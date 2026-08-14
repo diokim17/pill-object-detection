@@ -1,0 +1,88 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000102.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000102.png",
+      "back_color": "연회색 배경",
+      "id": 202608150002,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003483-019861-020238-030308_0_2_0_2_90_000_200.png",
+      "background_patch": [
+        640,
+        480,
+        860,
+        700
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 35302,
+      "iscrowd": 0,
+      "bbox": [
+        203,
+        708,
+        212,
+        213
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500004,
+      "image_id": 202608150002,
+      "source_object": "K-016262_0_1_1_0_70_340_200.png"
+    },
+    {
+      "area": 22318,
+      "iscrowd": 0,
+      "bbox": [
+        350,
+        208,
+        204,
+        157
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500005,
+      "image_id": 202608150002,
+      "source_object": "K-038162_0_2_1_1_90_120_200.png"
+    },
+    {
+      "area": 17924,
+      "iscrowd": 0,
+      "bbox": [
+        577,
+        754,
+        148,
+        154
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500006,
+      "image_id": 202608150002,
+      "source_object": "K-016232_0_1_1_1_70_240_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

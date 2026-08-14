@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000022.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000022.png",
+      "back_color": "연회색 배경",
+      "id": 202608140022,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-013900-021325_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 26144,
+      "iscrowd": 0,
+      "bbox": [
+        627,
+        710,
+        233,
+        172
+      ],
+      "category_id": 29345,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400064,
+      "image_id": 202608140022,
+      "source_object": "K-029345_0_0_0_1_60_200_200.png"
+    },
+    {
+      "area": 27639,
+      "iscrowd": 0,
+      "bbox": [
+        225,
+        728,
+        225,
+        228
+      ],
+      "category_id": 27993,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400065,
+      "image_id": 202608140022,
+      "source_object": "K-027993_0_2_1_0_90_300_200.png"
+    },
+    {
+      "area": 46489,
+      "iscrowd": 0,
+      "bbox": [
+        428,
+        254,
+        245,
+        244
+      ],
+      "category_id": 3743,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400066,
+      "image_id": 202608140022,
+      "source_object": "K-003743_0_0_1_0_90_020_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 3743,
+      "name": "알드린정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27993,
+      "name": "졸로푸트정 100mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 29345,
+      "name": "비모보정 500/20mg"
+    }
+  ]
+}
