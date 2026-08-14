@@ -42,6 +42,7 @@ class ParsedImageName:
     camera_angle: Optional[int]
     suffix_tokens: Tuple[str, ...]
     is_copy_paste: bool = False
+    is_additional_ts: bool = False
 
 
 @dataclass
@@ -105,6 +106,10 @@ class PillDetectionDataset(Dataset):
         include_raw_metadata:
             True이면 각 객체 metadata에 JSON의 images/categories/annotation
             원본 레코드를 추가로 보관합니다. 메모리 사용량이 증가할 수 있습니다.
+        additional_ts_mapping_annotation_dir:
+            추가 수집 TS의 ``category_id=1 / Drug``를 기존 Train 클래스 ID로
+            변환할 때 참조할 기존 Train annotation 폴더입니다. 지정하지 않으면
+            현재 annotation 폴더 안의 기존 Train JSON으로 매핑을 구성합니다.
 
     Returns from __getitem__:
         image:
@@ -122,6 +127,9 @@ class PillDetectionDataset(Dataset):
         r"^(?P<combo>K(?:-\d{6}){3,4})_(?P<suffix>.+)$"
     )
     _COPY_PASTE_FILENAME_PATTERN = re.compile(r"^copy_paste_\d+$")
+    _ADDITIONAL_TS_FILENAME_PATTERN = re.compile(
+        r"^(?P<drug>K-\d{6})_(?P<suffix>.+)$"
+    )
 
     def __init__(
         self,
@@ -134,6 +142,7 @@ class PillDetectionDataset(Dataset):
         strict: bool = True,
         validate_image_size: bool = False,
         include_raw_metadata: bool = False,
+        additional_ts_mapping_annotation_dir: Optional[PathLike] = None,
     ) -> None:
         super().__init__()
 
@@ -149,8 +158,20 @@ class PillDetectionDataset(Dataset):
         self.strict = strict
         self.validate_image_size = validate_image_size
         self.include_raw_metadata = include_raw_metadata
+        self.additional_ts_mapping_annotation_dir = (
+            Path(additional_ts_mapping_annotation_dir)
+            if additional_ts_mapping_annotation_dir is not None
+            else self.annotation_dir
+        )
 
         self._validate_directories()
+
+        # 추가 TS의 categories.id=1 / Drug는 실제 학습 클래스가 아니므로,
+        # 기존 Train JSON만 사용해 식별자별 실제 category_id 매핑을 구성합니다.
+        (
+            self._additional_ts_category_maps,
+            self._additional_ts_category_records,
+        ) = self._build_additional_ts_category_mapping()
 
         # JSON을 정확히 한 번만 읽은 뒤 임시 CachedSample 목록을 생성합니다.
         raw_samples, category_records = self._build_cache_once()
@@ -213,6 +234,23 @@ class PillDetectionDataset(Dataset):
                     suffix_tokens=(),
                     is_copy_paste=True,
                 )
+            additional_ts_match = cls._ADDITIONAL_TS_FILENAME_PATTERN.match(path.stem)
+            if additional_ts_match is not None:
+                combination_key = additional_ts_match.group("drug")
+                suffix_tokens = tuple(additional_ts_match.group("suffix").split("_"))
+                camera_angle: Optional[int] = None
+                if len(suffix_tokens) > 4:
+                    try:
+                        camera_angle = int(suffix_tokens[4])
+                    except ValueError:
+                        camera_angle = None
+                return ParsedImageName(
+                    combination_key=combination_key,
+                    pill_ids=(combination_key.split("-")[1],),
+                    camera_angle=camera_angle,
+                    suffix_tokens=suffix_tokens,
+                    is_additional_ts=True,
+                )
             raise ValueError(
                 "지원하지 않는 이미지 파일명 형식입니다: "
                 f"{path.name}"
@@ -272,6 +310,21 @@ class PillDetectionDataset(Dataset):
                 return []
             return [annotation_path]
 
+        if parsed.is_additional_ts:
+            expected_name = f"{image_path.stem}.json"
+            direct_path = self.annotation_dir / expected_name
+            json_files = (
+                [direct_path]
+                if direct_path.is_file()
+                else sorted(self.annotation_dir.rglob(expected_name))
+            )
+            if len(json_files) != 1:
+                self._handle_problem(
+                    f"추가 TS 이미지 {image_path.name}의 동일 basename JSON은 "
+                    f"정확히 1개여야 하지만 {len(json_files)}개입니다."
+                )
+            return json_files
+
         annotation_group_dir = self.annotation_dir / f"{parsed.combination_key}_json"
         if not annotation_group_dir.is_dir():
             self._handle_problem(
@@ -298,7 +351,9 @@ class PillDetectionDataset(Dataset):
         """모든 JSON을 한 번만 읽어 전체 annotation 캐시를 생성합니다."""
 
         raw_samples: List[CachedSample] = []
-        category_records: Dict[int, Dict[str, Any]] = {}
+        category_records: Dict[int, Dict[str, Any]] = dict(
+            self._additional_ts_category_records
+        )
 
         image_files = self._iter_image_files()
         if not image_files:
@@ -372,6 +427,28 @@ class PillDetectionDataset(Dataset):
                     if height is not None:
                         sample_height = int(height)
 
+                    if parsed.is_additional_ts:
+                        mapped = self._resolve_additional_ts_category(
+                            cached_object.metadata
+                        )
+                        if mapped is None:
+                            self._handle_problem(
+                                "추가 TS의 실제 Train category_id를 매핑할 수 없어 "
+                                f"샘플을 제외합니다: {json_path}",
+                                ValueError,
+                            )
+                            objects.pop()
+                            continue
+                        mapped_category_id, mapping_key = mapped
+                        cached_object.metadata["source_category_id"] = cached_object.category_id
+                        cached_object.metadata["source_category_name"] = category_record.get("name")
+                        cached_object.metadata["category_mapping_key"] = mapping_key
+                        cached_object.category_id = mapped_category_id
+                        category_record = dict(
+                            self._additional_ts_category_records[mapped_category_id]
+                        )
+                        cached_object.metadata["category_name"] = category_record.get("name")
+
                     category_id = cached_object.category_id
                     if category_record:
                         category_records.setdefault(category_id, category_record)
@@ -392,7 +469,7 @@ class PillDetectionDataset(Dataset):
                 continue
 
             # 기존 Train에서만 파일명 ID와 JSON의 drug ID를 비교합니다.
-            if not parsed.is_copy_paste:
+            if not parsed.is_copy_paste and not parsed.is_additional_ts:
                 json_pill_ids = {
                     self._normalize_pill_id(obj.metadata.get("drug_code")) for obj in objects
                 }
@@ -419,6 +496,117 @@ class PillDetectionDataset(Dataset):
             raise RuntimeError("사용 가능한 image/annotation 샘플을 찾지 못했습니다.")
 
         return raw_samples, category_records
+
+    def _build_additional_ts_category_mapping(
+        self,
+    ) -> Tuple[Dict[str, Dict[str, int]], Dict[int, Dict[str, Any]]]:
+        """기존 Train JSON에서 추가 TS 식별자 → 실제 category_id 맵을 만듭니다."""
+
+        # 기존 Train 및 Copy-Paste 전용 데이터셋에서는 이 분기를 완전히 건너뛰어
+        # 기존 클래스 수집 방식과 로딩 동작을 그대로 보존합니다.
+        has_additional_ts = any(
+            self._ADDITIONAL_TS_FILENAME_PATTERN.match(path.stem)
+            for path in self._iter_image_files()
+        )
+        if not has_additional_ts:
+            return (
+                {key: {} for key in ("drug_N", "dl_mapping_code", "item_seq", "drug_name")},
+                {},
+            )
+
+        mapping_sets: Dict[str, Dict[str, set[int]]] = {
+            key: {} for key in ("drug_N", "dl_mapping_code", "item_seq", "drug_name")
+        }
+        category_records: Dict[int, Dict[str, Any]] = {}
+        root = self.additional_ts_mapping_annotation_dir
+        if not root.is_dir():
+            raise FileNotFoundError(f"추가 TS 매핑용 Train annotation 폴더가 없습니다: {root}")
+
+        for json_path in root.rglob("*.json"):
+            try:
+                with json_path.open("r", encoding="utf-8") as file:
+                    payload = json.load(file)
+            except (OSError, json.JSONDecodeError):
+                continue
+            images = payload.get("images") or []
+            annotations = payload.get("annotations") or []
+            categories = payload.get("categories") or []
+            if not images or not annotations:
+                continue
+            image_record = images[0]
+            category_by_id = {
+                int(record["id"]): dict(record)
+                for record in categories
+                if isinstance(record, Mapping) and record.get("id") is not None
+            }
+            for annotation in annotations:
+                try:
+                    category_id = int(annotation["category_id"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                category_record = category_by_id.get(category_id, {})
+                if category_id == 1 and str(category_record.get("name", "")).strip() == "Drug":
+                    continue
+                category_records.setdefault(
+                    category_id,
+                    category_record or {
+                        "id": category_id,
+                        "name": image_record.get("dl_name", str(category_id)),
+                        "supercategory": "pill",
+                    },
+                )
+                values = {
+                    "drug_N": self._normalize_mapping_code(image_record.get("drug_N")),
+                    "dl_mapping_code": self._normalize_mapping_code(
+                        image_record.get("dl_mapping_code")
+                    ),
+                    "item_seq": self._normalize_mapping_text(image_record.get("item_seq")),
+                    "drug_name": self._normalize_mapping_text(
+                        image_record.get("dl_name") or category_record.get("name")
+                    ),
+                }
+                for key, value in values.items():
+                    if value is not None:
+                        mapping_sets[key].setdefault(value, set()).add(category_id)
+
+        mappings: Dict[str, Dict[str, int]] = {}
+        for key, records in mapping_sets.items():
+            conflicts = {value: ids for value, ids in records.items() if len(ids) > 1}
+            if conflicts:
+                preview = list(conflicts.items())[:5]
+                raise ValueError(f"추가 TS 매핑 키 충돌({key}): {preview}")
+            mappings[key] = {value: next(iter(ids)) for value, ids in records.items()}
+        return mappings, category_records
+
+    def _resolve_additional_ts_category(
+        self, metadata: Mapping[str, Any]
+    ) -> Optional[Tuple[int, str]]:
+        """우선순위에 따라 추가 TS 객체의 실제 Train category_id를 찾습니다."""
+
+        candidates = (
+            ("drug_N", self._normalize_mapping_code(metadata.get("drug_code"))),
+            ("dl_mapping_code", self._normalize_mapping_code(metadata.get("mapping_code"))),
+            ("item_seq", self._normalize_mapping_text(metadata.get("item_seq"))),
+            ("drug_name", self._normalize_mapping_text(metadata.get("drug_name"))),
+        )
+        for key, value in candidates:
+            if value is not None and value in self._additional_ts_category_maps[key]:
+                return self._additional_ts_category_maps[key][value], key
+        return None
+
+    @staticmethod
+    def _normalize_mapping_text(value: Any) -> Optional[str]:
+        if value in (None, ""):
+            return None
+        text = str(value).strip()
+        return text or None
+
+    @classmethod
+    def _normalize_mapping_code(cls, value: Any) -> Optional[str]:
+        normalized = cls._normalize_pill_id(value)
+        if normalized is None:
+            return None
+        return normalized.lstrip("0") or "0"
 
     def _parse_copy_paste_json_payload(
         self,
