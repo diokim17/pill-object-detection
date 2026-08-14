@@ -41,6 +41,7 @@ class ParsedImageName:
     pill_ids: Tuple[str, ...]
     camera_angle: Optional[int]
     suffix_tokens: Tuple[str, ...]
+    is_copy_paste: bool = False
 
 
 @dataclass
@@ -120,6 +121,7 @@ class PillDetectionDataset(Dataset):
     _FILENAME_PATTERN = re.compile(
         r"^(?P<combo>K(?:-\d{6}){3,4})_(?P<suffix>.+)$"
     )
+    _COPY_PASTE_FILENAME_PATTERN = re.compile(r"^copy_paste_\d+$")
 
     def __init__(
         self,
@@ -203,6 +205,14 @@ class PillDetectionDataset(Dataset):
         path = Path(image_path)
         match = cls._FILENAME_PATTERN.match(path.stem)
         if match is None:
+            if cls._COPY_PASTE_FILENAME_PATTERN.fullmatch(path.stem):
+                return ParsedImageName(
+                    combination_key=path.stem,
+                    pill_ids=(),
+                    camera_angle=None,
+                    suffix_tokens=(),
+                    is_copy_paste=True,
+                )
             raise ValueError(
                 "지원하지 않는 이미지 파일명 형식입니다: "
                 f"{path.name}"
@@ -252,6 +262,16 @@ class PillDetectionDataset(Dataset):
         하위의 각 K-{ID} 폴더에서 이미지 stem과 동일한 JSON 파일을 찾습니다.
         """
 
+        if parsed.is_copy_paste:
+            annotation_path = self.annotation_dir / f"{image_path.stem}.json"
+            if not annotation_path.is_file():
+                self._handle_problem(
+                    f"합성 이미지와 동일 basename의 annotation이 없습니다: {annotation_path}",
+                    FileNotFoundError,
+                )
+                return []
+            return [annotation_path]
+
         annotation_group_dir = self.annotation_dir / f"{parsed.combination_key}_json"
         if not annotation_group_dir.is_dir():
             self._handle_problem(
@@ -300,42 +320,70 @@ class PillDetectionDataset(Dataset):
             sample_width: Optional[int] = None
             sample_height: Optional[int] = None
 
-            for json_path in json_files:
+            sample_image_id = image_id
+
+            if parsed.is_copy_paste:
+                json_path = json_files[0]
                 try:
                     with json_path.open("r", encoding="utf-8") as file:
                         payload = json.load(file)
-                    cached_object, image_record, category_record = self._parse_json_payload(
-                        payload=payload,
-                        json_path=json_path,
+                    synthetic_objects, image_record, synthetic_categories = (
+                        self._parse_copy_paste_json_payload(
+                            payload=payload,
+                            json_path=json_path,
+                            image_path=image_path,
+                        )
                     )
                 except (OSError, json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
                     self._handle_problem(
                         f"JSON 파싱 실패: {json_path}\n원인: {exc}",
                         type(exc) if isinstance(exc, Exception) else RuntimeError,
                     )
-                    continue
-
-                objects.append(cached_object)
-
-                width = image_record.get("width")
-                height = image_record.get("height")
-                if width is not None:
-                    sample_width = int(width)
-                if height is not None:
-                    sample_height = int(height)
-
-                category_id = cached_object.category_id
-                if category_record:
-                    category_records.setdefault(category_id, category_record)
                 else:
-                    category_records.setdefault(
-                        category_id,
-                        {
-                            "id": category_id,
-                            "name": cached_object.metadata.get("drug_name", str(category_id)),
-                            "supercategory": "pill",
-                        },
-                    )
+                    objects.extend(synthetic_objects)
+                    sample_width = self._optional_int(image_record.get("width"))
+                    sample_height = self._optional_int(image_record.get("height"))
+                    if image_record.get("id") not in (None, ""):
+                        sample_image_id = int(image_record["id"])
+                    for category_id, category_record in synthetic_categories.items():
+                        category_records.setdefault(category_id, category_record)
+            else:
+                for json_path in json_files:
+                    try:
+                        with json_path.open("r", encoding="utf-8") as file:
+                            payload = json.load(file)
+                        cached_object, image_record, category_record = self._parse_json_payload(
+                            payload=payload,
+                            json_path=json_path,
+                        )
+                    except (OSError, json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
+                        self._handle_problem(
+                            f"JSON 파싱 실패: {json_path}\n원인: {exc}",
+                            type(exc) if isinstance(exc, Exception) else RuntimeError,
+                        )
+                        continue
+
+                    objects.append(cached_object)
+
+                    width = image_record.get("width")
+                    height = image_record.get("height")
+                    if width is not None:
+                        sample_width = int(width)
+                    if height is not None:
+                        sample_height = int(height)
+
+                    category_id = cached_object.category_id
+                    if category_record:
+                        category_records.setdefault(category_id, category_record)
+                    else:
+                        category_records.setdefault(
+                            category_id,
+                            {
+                                "id": category_id,
+                                "name": cached_object.metadata.get("drug_name", str(category_id)),
+                                "supercategory": "pill",
+                            },
+                        )
 
             if not objects:
                 self._handle_problem(
@@ -343,22 +391,23 @@ class PillDetectionDataset(Dataset):
                 )
                 continue
 
-            # 파일명 ID와 JSON의 drug ID를 비교해 데이터 오류를 조기에 찾습니다.
-            json_pill_ids = {
-                self._normalize_pill_id(obj.metadata.get("drug_code")) for obj in objects
-            }
-            filename_pill_ids = set(parsed.pill_ids)
-            if None not in json_pill_ids and json_pill_ids != filename_pill_ids:
-                self._handle_problem(
-                    f"파일명 알약 ID와 JSON drug_N이 일치하지 않습니다. "
-                    f"image={image_path.name}, filename={sorted(filename_pill_ids)}, "
-                    f"json={sorted(json_pill_ids)}"
-                )
+            # 기존 Train에서만 파일명 ID와 JSON의 drug ID를 비교합니다.
+            if not parsed.is_copy_paste:
+                json_pill_ids = {
+                    self._normalize_pill_id(obj.metadata.get("drug_code")) for obj in objects
+                }
+                filename_pill_ids = set(parsed.pill_ids)
+                if None not in json_pill_ids and json_pill_ids != filename_pill_ids:
+                    self._handle_problem(
+                        f"파일명 알약 ID와 JSON drug_N이 일치하지 않습니다. "
+                        f"image={image_path.name}, filename={sorted(filename_pill_ids)}, "
+                        f"json={sorted(json_pill_ids)}"
+                    )
 
             raw_samples.append(
                 CachedSample(
                     image_path=image_path,
-                    image_id=image_id,
+                    image_id=sample_image_id,
                     parsed_name=parsed,
                     objects=objects,
                     width=sample_width,
@@ -370,6 +419,91 @@ class PillDetectionDataset(Dataset):
             raise RuntimeError("사용 가능한 image/annotation 샘플을 찾지 못했습니다.")
 
         return raw_samples, category_records
+
+    def _parse_copy_paste_json_payload(
+        self,
+        payload: Mapping[str, Any],
+        json_path: Path,
+        image_path: Path,
+    ) -> Tuple[List[CachedObject], Dict[str, Any], Dict[int, Dict[str, Any]]]:
+        """합성 이미지 하나의 multi-object JSON을 전부 CachedObject로 변환합니다."""
+
+        images = payload.get("images", [])
+        annotations = payload.get("annotations", [])
+        categories = payload.get("categories", [])
+
+        if len(images) != 1:
+            raise ValueError(f"합성 JSON의 images 항목은 정확히 1개여야 합니다: {len(images)}")
+        if not annotations:
+            raise ValueError("annotations 항목이 비어 있습니다.")
+
+        image_record = dict(images[0])
+        json_file_name = image_record.get("file_name") or image_record.get("imgfile")
+        if json_file_name != image_path.name:
+            raise ValueError(
+                f"합성 image/JSON file_name 불일치: image={image_path.name}, json={json_file_name}"
+            )
+
+        categories_by_id: Dict[int, Dict[str, Any]] = {}
+        for record in categories:
+            category_record = dict(record)
+            category_id = int(category_record["id"])
+            if category_id in categories_by_id:
+                raise ValueError(f"합성 JSON categories.id 중복: {category_id}")
+            categories_by_id[category_id] = category_record
+
+        image_id = self._optional_int(image_record.get("id"))
+        objects: List[CachedObject] = []
+        for annotation in annotations:
+            annotation_record = dict(annotation)
+            category_id = int(annotation_record["category_id"])
+            if category_id not in categories_by_id:
+                raise ValueError(
+                    f"annotation category_id에 대응하는 categories 레코드가 없습니다: {category_id}"
+                )
+
+            annotation_image_id = self._optional_int(annotation_record.get("image_id"))
+            if (
+                image_id is not None
+                and annotation_image_id is not None
+                and annotation_image_id != image_id
+            ):
+                raise ValueError(
+                    f"합성 JSON image_id 불일치: image={image_id}, annotation={annotation_image_id}"
+                )
+
+            bbox = annotation_record.get("bbox")
+            if not isinstance(bbox, Sequence) or len(bbox) != 4:
+                raise ValueError(f"bbox 형식이 올바르지 않습니다: {bbox}")
+            x, y, width, height = map(float, bbox)
+            if width <= 0 or height <= 0:
+                raise ValueError(f"bbox의 width/height는 양수여야 합니다: {bbox}")
+
+            area_value = annotation_record.get("area", width * height)
+            area = float(area_value)
+            if area <= 0:
+                area = width * height
+
+            category_record = categories_by_id[category_id]
+            metadata = self._extract_metadata(
+                image_record=image_record,
+                annotation_record=annotation_record,
+                category_record=category_record,
+                json_path=json_path,
+            )
+            objects.append(
+                CachedObject(
+                    bbox_xyxy=(x, y, x + width, y + height),
+                    category_id=category_id,
+                    area=area,
+                    iscrowd=int(annotation_record.get("iscrowd", 0)),
+                    annotation_id=self._optional_int(annotation_record.get("id")),
+                    ignore=int(annotation_record.get("ignore", 0)),
+                    metadata=metadata,
+                )
+            )
+
+        return objects, image_record, categories_by_id
 
     def _parse_json_payload(
         self,
