@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000057.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000057.png",
+      "back_color": "연회색 배경",
+      "id": 202608140057,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-016262-020014_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 28516,
+      "iscrowd": 0,
+      "bbox": [
+        170,
+        850,
+        219,
+        234
+      ],
+      "category_id": 12778,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400175,
+      "image_id": 202608140057,
+      "source_object": "K-012778_0_2_1_0_90_180_200.png"
+    },
+    {
+      "area": 36480,
+      "iscrowd": 0,
+      "bbox": [
+        130,
+        240,
+        231,
+        238
+      ],
+      "category_id": 22362,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400176,
+      "image_id": 202608140057,
+      "source_object": "K-022362_0_1_1_1_75_100_200.png"
+    },
+    {
+      "area": 16470,
+      "iscrowd": 0,
+      "bbox": [
+        595,
+        747,
+        118,
+        186
+      ],
+      "category_id": 12247,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400177,
+      "image_id": 202608140057,
+      "source_object": "K-012247_0_0_1_0_75_320_200.png"
+    },
+    {
+      "area": 30057,
+      "iscrowd": 0,
+      "bbox": [
+        506,
+        252,
+        264,
+        198
+      ],
+      "category_id": 13395,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400178,
+      "image_id": 202608140057,
+      "source_object": "K-013395_0_0_1_0_90_120_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12247,
+      "name": "아빌리파이정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 12778,
+      "name": "다보타민큐정 10mg/병"
+    },
+    {
+      "supercategory": "pill",
+      "id": 13395,
+      "name": "써스펜8시간이알서방정 650mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 22362,
+      "name": "맥시부펜이알정 300mg"
+    }
+  ]
+}

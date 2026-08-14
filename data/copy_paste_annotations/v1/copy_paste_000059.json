@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000059.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000059.png",
+      "back_color": "연회색 배경",
+      "id": 202608140059,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-029667-032310_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 21767,
+      "iscrowd": 0,
+      "bbox": [
+        202,
+        257,
+        167,
+        166
+      ],
+      "category_id": 3544,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400183,
+      "image_id": 202608140059,
+      "source_object": "K-003544_0_2_0_0_70_140_200.png"
+    },
+    {
+      "area": 30274,
+      "iscrowd": 0,
+      "bbox": [
+        568,
+        838,
+        198,
+        195
+      ],
+      "category_id": 28763,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400184,
+      "image_id": 202608140059,
+      "source_object": "K-028763_0_0_0_2_70_260_200.png"
+    },
+    {
+      "area": 25063,
+      "iscrowd": 0,
+      "bbox": [
+        110,
+        787,
+        127,
+        247
+      ],
+      "category_id": 29451,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400185,
+      "image_id": 202608140059,
+      "source_object": "K-029451_0_2_1_1_90_260_200.png"
+    },
+    {
+      "area": 22265,
+      "iscrowd": 0,
+      "bbox": [
+        659,
+        292,
+        203,
+        209
+      ],
+      "category_id": 16688,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400186,
+      "image_id": 202608140059,
+      "source_object": "K-016688_0_2_1_1_75_260_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 3544,
+      "name": "무코스타정(레바미피드)(비매품)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16688,
+      "name": "오마코연질캡슐(오메가-3-산에틸에스테르90)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 28763,
+      "name": "트라젠타정(리나글립틴)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 29451,
+      "name": "레일라정"
+    }
+  ]
+}

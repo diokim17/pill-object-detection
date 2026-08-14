@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000016.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000016.png",
+      "back_color": "연회색 배경",
+      "id": 202608140016,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-001900-016551-029345-033208_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 37518,
+      "iscrowd": 0,
+      "bbox": [
+        160,
+        705,
+        260,
+        220
+      ],
+      "category_id": 19552,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400046,
+      "image_id": 202608140016,
+      "source_object": "K-019552_0_2_0_2_75_100_200.png"
+    },
+    {
+      "area": 23757,
+      "iscrowd": 0,
+      "bbox": [
+        559,
+        845,
+        163,
+        201
+      ],
+      "category_id": 19861,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400047,
+      "image_id": 202608140016,
+      "source_object": "K-019861_0_2_1_1_75_000_200.png"
+    },
+    {
+      "area": 20623,
+      "iscrowd": 0,
+      "bbox": [
+        326,
+        269,
+        249,
+        107
+      ],
+      "category_id": 16688,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400048,
+      "image_id": 202608140016,
+      "source_object": "K-016688_0_2_0_1_75_040_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16688,
+      "name": "오마코연질캡슐(오메가-3-산에틸에스테르90)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 19552,
+      "name": "트루비타정 60mg/병"
+    },
+    {
+      "supercategory": "pill",
+      "id": 19861,
+      "name": "노바스크정 5mg"
+    }
+  ]
+}

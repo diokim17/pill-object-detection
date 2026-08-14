@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000097.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000097.png",
+      "back_color": "연회색 배경",
+      "id": 202608140097,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-033880-038162_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 27965,
+      "iscrowd": 0,
+      "bbox": [
+        550,
+        833,
+        190,
+        189
+      ],
+      "category_id": 33208,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400335,
+      "image_id": 202608140097,
+      "source_object": "K-033208_0_2_0_2_90_240_200.png"
+    },
+    {
+      "area": 30792,
+      "iscrowd": 0,
+      "bbox": [
+        204,
+        780,
+        154,
+        260
+      ],
+      "category_id": 33009,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400336,
+      "image_id": 202608140097,
+      "source_object": "K-033009_0_2_0_2_70_080_200.png"
+    },
+    {
+      "area": 24247,
+      "iscrowd": 0,
+      "bbox": [
+        635,
+        316,
+        246,
+        124
+      ],
+      "category_id": 27926,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400337,
+      "image_id": 202608140097,
+      "source_object": "K-027926_0_1_1_1_90_040_200.png"
+    },
+    {
+      "area": 26331,
+      "iscrowd": 0,
+      "bbox": [
+        175,
+        112,
+        132,
+        244
+      ],
+      "category_id": 34597,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400338,
+      "image_id": 202608140097,
+      "source_object": "K-034597_0_2_0_2_70_260_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 27926,
+      "name": "울트라셋이알서방정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33009,
+      "name": "신바로정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33208,
+      "name": "에스원엠프정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 34597,
+      "name": "제미메트서방정 50/1000mg"
+    }
+  ]
+}

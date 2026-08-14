@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000027.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000027.png",
+      "back_color": "연회색 배경",
+      "id": 202608140027,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003483-016232-020877-030308_0_2_0_2_75_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 28391,
+      "iscrowd": 0,
+      "bbox": [
+        324,
+        225,
+        201,
+        225
+      ],
+      "category_id": 31885,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400079,
+      "image_id": 202608140027,
+      "source_object": "K-031885_0_1_1_2_70_240_200.png"
+    },
+    {
+      "area": 25525,
+      "iscrowd": 0,
+      "bbox": [
+        532,
+        752,
+        242,
+        137
+      ],
+      "category_id": 24850,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400080,
+      "image_id": 202608140027,
+      "source_object": "K-024850_0_1_1_1_60_220_200.png"
+    },
+    {
+      "area": 24896,
+      "iscrowd": 0,
+      "bbox": [
+        200,
+        805,
+        141,
+        239
+      ],
+      "category_id": 29451,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400081,
+      "image_id": 202608140027,
+      "source_object": "K-029451_0_0_0_1_70_320_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 24850,
+      "name": "놀텍정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 29451,
+      "name": "레일라정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 31885,
+      "name": "자누메트엑스알서방정 100/1000mg"
+    }
+  ]
+}

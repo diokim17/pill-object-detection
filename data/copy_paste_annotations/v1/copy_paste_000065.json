@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000065.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000065.png",
+      "back_color": "연회색 배경",
+      "id": 202608140065,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-001900-016548-019607-029451_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 26271,
+      "iscrowd": 0,
+      "bbox": [
+        107,
+        770,
+        238,
+        165
+      ],
+      "category_id": 12081,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400207,
+      "image_id": 202608140065,
+      "source_object": "K-012081_0_0_0_0_60_020_200.png"
+    },
+    {
+      "area": 27697,
+      "iscrowd": 0,
+      "bbox": [
+        588,
+        733,
+        153,
+        249
+      ],
+      "category_id": 27926,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400208,
+      "image_id": 202608140065,
+      "source_object": "K-027926_0_0_1_1_60_320_200.png"
+    },
+    {
+      "area": 26582,
+      "iscrowd": 0,
+      "bbox": [
+        157,
+        255,
+        185,
+        184
+      ],
+      "category_id": 28763,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400209,
+      "image_id": 202608140065,
+      "source_object": "K-028763_0_2_0_1_90_060_200.png"
+    },
+    {
+      "area": 31277,
+      "iscrowd": 0,
+      "bbox": [
+        622,
+        321,
+        160,
+        255
+      ],
+      "category_id": 29345,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400210,
+      "image_id": 202608140065,
+      "source_object": "K-029345_0_1_1_1_60_200_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12081,
+      "name": "리렉스펜정 300mg/PTP"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27926,
+      "name": "울트라셋이알서방정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 28763,
+      "name": "트라젠타정(리나글립틴)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 29345,
+      "name": "비모보정 500/20mg"
+    }
+  ]
+}

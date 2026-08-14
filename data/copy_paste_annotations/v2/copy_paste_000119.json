@@ -1,0 +1,83 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000119.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000119.png",
+      "back_color": "연회색 배경",
+      "id": 202608150019,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003351-019232-029667_0_2_1_2_70_000_200.png",
+      "background_patch": [
+        480,
+        560,
+        700,
+        780
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 23846,
+      "iscrowd": 0,
+      "bbox": [
+        357,
+        142,
+        176,
+        173
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500055,
+      "image_id": 202608150019,
+      "source_object": "K-016232_0_2_0_1_90_060_200.png"
+    },
+    {
+      "area": 19875,
+      "iscrowd": 0,
+      "bbox": [
+        593,
+        747,
+        204,
+        123
+      ],
+      "category_id": 36637,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500056,
+      "image_id": 202608150019,
+      "source_object": "K-036637_0_1_1_1_60_140_200.png"
+    },
+    {
+      "area": 19665,
+      "iscrowd": 0,
+      "bbox": [
+        187,
+        828,
+        158,
+        159
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500057,
+      "image_id": 202608150019,
+      "source_object": "K-016232_0_2_1_1_90_220_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 36637,
+      "name": "로수젯정10/5밀리그램"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000071.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000071.png",
+      "back_color": "연회색 배경",
+      "id": 202608140071,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-020014-035206_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 21850,
+      "iscrowd": 0,
+      "bbox": [
+        687,
+        760,
+        130,
+        241
+      ],
+      "category_id": 13395,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400231,
+      "image_id": 202608140071,
+      "source_object": "K-013395_0_0_1_2_75_080_200.png"
+    },
+    {
+      "area": 26873,
+      "iscrowd": 0,
+      "bbox": [
+        623,
+        355,
+        184,
+        185
+      ],
+      "category_id": 3544,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400232,
+      "image_id": 202608140071,
+      "source_object": "K-003544_0_1_0_2_70_080_200.png"
+    },
+    {
+      "area": 16679,
+      "iscrowd": 0,
+      "bbox": [
+        135,
+        884,
+        149,
+        145
+      ],
+      "category_id": 21771,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400233,
+      "image_id": 202608140071,
+      "source_object": "K-021771_0_0_0_1_60_340_200.png"
+    },
+    {
+      "area": 21948,
+      "iscrowd": 0,
+      "bbox": [
+        203,
+        314,
+        187,
+        149
+      ],
+      "category_id": 19861,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400234,
+      "image_id": 202608140071,
+      "source_object": "K-019861_0_2_1_2_75_240_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 3544,
+      "name": "무코스타정(레바미피드)(비매품)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 13395,
+      "name": "써스펜8시간이알서방정 650mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 19861,
+      "name": "노바스크정 5mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 21771,
+      "name": "라비에트정 20mg"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000173.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000173.png",
+      "back_color": "연회색 배경",
+      "id": 202608150073,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003483-016232-020877-030308_0_2_0_2_90_000_200.png",
+      "background_patch": [
+        640,
+        480,
+        860,
+        700
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 32615,
+      "iscrowd": 0,
+      "bbox": [
+        109,
+        140,
+        201,
+        205
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500239,
+      "image_id": 202608150073,
+      "source_object": "K-016262_0_2_0_2_70_260_200.png"
+    },
+    {
+      "area": 24999,
+      "iscrowd": 0,
+      "bbox": [
+        565,
+        272,
+        235,
+        136
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500240,
+      "image_id": 202608150073,
+      "source_object": "K-032310_0_0_1_1_70_220_200.png"
+    },
+    {
+      "area": 35231,
+      "iscrowd": 0,
+      "bbox": [
+        64,
+        763,
+        222,
+        236
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500241,
+      "image_id": 202608150073,
+      "source_object": "K-032310_0_0_1_0_90_080_200.png"
+    },
+    {
+      "area": 27307,
+      "iscrowd": 0,
+      "bbox": [
+        545,
+        795,
+        234,
+        145
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500242,
+      "image_id": 202608150073,
+      "source_object": "K-038162_0_2_0_1_75_000_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 32310,
+      "name": "글리아타민연질캡슐"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

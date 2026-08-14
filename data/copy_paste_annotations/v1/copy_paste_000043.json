@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000043.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000043.png",
+      "back_color": "연회색 배경",
+      "id": 202608140043,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-018357-038162_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 30151,
+      "iscrowd": 0,
+      "bbox": [
+        644,
+        781,
+        199,
+        191
+      ],
+      "category_id": 28763,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400127,
+      "image_id": 202608140043,
+      "source_object": "K-028763_0_1_1_1_60_080_200.png"
+    },
+    {
+      "area": 25576,
+      "iscrowd": 0,
+      "bbox": [
+        140,
+        728,
+        132,
+        244
+      ],
+      "category_id": 16551,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400128,
+      "image_id": 202608140043,
+      "source_object": "K-016551_0_1_0_2_90_080_200.png"
+    },
+    {
+      "area": 27531,
+      "iscrowd": 0,
+      "bbox": [
+        423,
+        126,
+        153,
+        242
+      ],
+      "category_id": 34597,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400129,
+      "image_id": 202608140043,
+      "source_object": "K-034597_0_1_0_1_60_080_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16551,
+      "name": "동아가바펜틴정 800mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 28763,
+      "name": "트라젠타정(리나글립틴)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 34597,
+      "name": "제미메트서방정 50/1000mg"
+    }
+  ]
+}
