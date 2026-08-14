@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import random
 import re
+import shutil
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass
@@ -725,6 +727,36 @@ class PillDetectionDataset(Dataset):
         y2 = y + height
         category_id = int(annotation_record["category_id"])
 
+        # 추가 데이터 일부는 실제 약 정보가 images에 있음에도 COCO category가
+        # {id: 1, name: 'Drug'}라는 placeholder로 저장되어 있습니다.
+        # 이 경우 drug_N과 dl_name을 사용해 실제 category 정보를 복원합니다.
+        is_placeholder_category = (
+            category_id == 1
+            and self._optional_int(category_record.get("id")) == 1
+            and str(category_record.get("name", "")).strip().lower() == "drug"
+        )
+        if is_placeholder_category:
+            normalized_pill_id = self._normalize_pill_id(image_record.get("drug_N"))
+            if normalized_pill_id is None or not normalized_pill_id.isdigit():
+                raise ValueError(
+                    "placeholder category를 복원할 drug_N이 올바르지 않습니다: "
+                    f"{image_record.get('drug_N')}"
+                )
+
+            category_id = int(normalized_pill_id)
+            drug_name = image_record.get("dl_name")
+            if drug_name is None or not str(drug_name).strip():
+                drug_name = f"K-{normalized_pill_id}"
+
+            # 아래 로직 전체가 보정된 값을 사용하도록 복사본을 갱신합니다.
+            annotation_record["category_id"] = category_id
+            category_record = {
+                **category_record,
+                "id": category_id,
+                "name": str(drug_name),
+                "supercategory": category_record.get("supercategory", "pill"),
+            }
+
         # area 값이 없거나 잘못된 경우 bbox 면적으로 보정합니다.
         area_value = annotation_record.get("area", width * height)
         area = float(area_value)
@@ -1132,3 +1164,178 @@ def detection_collate_fn(
 
     images, targets, metadata = zip(*batch)
     return list(images), list(targets), list(metadata)
+
+
+def xyxy_to_yolo(
+    box: Sequence[float], image_width: int, image_height: int
+) -> Optional[Tuple[float, float, float, float]]:
+    """픽셀 ``xyxy`` bbox를 YOLO의 정규화된 ``xywh``로 변환합니다."""
+
+    if image_width <= 0 or image_height <= 0:
+        raise ValueError("image_width와 image_height는 양수여야 합니다.")
+
+    x1, y1, x2, y2 = map(float, box)
+    x1 = max(0.0, min(x1, float(image_width)))
+    y1 = max(0.0, min(y1, float(image_height)))
+    x2 = max(0.0, min(x2, float(image_width)))
+    y2 = max(0.0, min(y2, float(image_height)))
+
+    width = x2 - x1
+    height = y2 - y1
+    if width <= 0 or height <= 0:
+        return None
+
+    return (
+        ((x1 + x2) / 2.0) / image_width,
+        ((y1 + y2) / 2.0) / image_height,
+        width / image_width,
+        height / image_height,
+    )
+
+
+def split_indices_by_combination_key(
+    dataset: PillDetectionDataset,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+) -> Dict[str, List[int]]:
+    """같은 알약 조합이 서로 다른 split에 섞이지 않도록 인덱스를 나눕니다."""
+
+    ratios = (train_ratio, val_ratio, test_ratio)
+    if any(ratio < 0 for ratio in ratios) or not np.isclose(sum(ratios), 1.0):
+        raise ValueError("train_ratio, val_ratio, test_ratio는 0 이상이고 합이 1이어야 합니다.")
+
+    grouped: Dict[str, List[int]] = {}
+    for index, sample in enumerate(dataset.samples):
+        key = str(sample["metadata"]["combination_key"])
+        grouped.setdefault(key, []).append(index)
+
+    keys = sorted(grouped)
+    random.Random(seed).shuffle(keys)
+    if len(keys) < sum(ratio > 0 for ratio in ratios):
+        raise ValueError("0보다 큰 각 split에 하나씩 배정할 만큼 combination_key가 충분하지 않습니다.")
+
+    # 그룹 수를 기준으로 경계를 정해 combination_key 누수를 원천 차단합니다.
+    train_end = round(len(keys) * train_ratio)
+    val_end = train_end + round(len(keys) * val_ratio)
+    train_end = min(max(train_end, int(train_ratio > 0)), len(keys))
+    val_end = min(max(val_end, train_end + int(val_ratio > 0)), len(keys))
+
+    key_splits = {
+        "train": keys[:train_end],
+        "val": keys[train_end:val_end],
+        "test": keys[val_end:],
+    }
+    if test_ratio > 0 and not key_splits["test"]:
+        donor = "val" if len(key_splits["val"]) > 1 else "train"
+        key_splits["test"].append(key_splits[donor].pop())
+
+    return {
+        split: sorted(index for key in split_keys for index in grouped[key])
+        for split, split_keys in key_splits.items()
+    }
+
+
+def prepare_ultralytics_dataset(
+    root: PathLike,
+    output_dir: PathLike,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+    image_dir_name: str = "train_images",
+    annotation_dir_name: str = "train_annotations",
+    strict: bool = False,
+) -> Dict[str, Any]:
+    """원본 데이터셋을 분할하고 Ultralytics YOLO 폴더와 ``data.yaml``을 생성합니다.
+
+    출력 폴더에 기존 이미지/라벨이 있으면 결과 혼합을 막기 위해 실패합니다.
+    반환값에는 dataset, split별 indices/통계, data.yaml 경로가 포함됩니다.
+    """
+
+    dataset = PillDetectionDataset(
+        root=root,
+        image_dir_name=image_dir_name,
+        annotation_dir_name=annotation_dir_name,
+        label_offset=0,
+        strict=strict,
+        validate_image_size=True,
+    )
+    split_indices = split_indices_by_combination_key(
+        dataset, train_ratio, val_ratio, test_ratio, seed
+    )
+    output_path = Path(output_dir).resolve()
+    directories = {
+        split: {
+            "images": output_path / "images" / split,
+            "labels": output_path / "labels" / split,
+        }
+        for split in ("train", "val", "test")
+    }
+    for split_dirs in directories.values():
+        for directory in split_dirs.values():
+            directory.mkdir(parents=True, exist_ok=True)
+            if any(directory.iterdir()):
+                raise FileExistsError(f"출력 폴더가 비어 있지 않습니다: {directory}")
+
+    statistics: Dict[str, Dict[str, int]] = {}
+    for split, indices in split_indices.items():
+        object_count = 0
+        skipped_count = 0
+        for index in indices:
+            sample = dataset.samples[index]
+            source = Path(sample["image_path"])
+            target = sample["target"]
+            with Image.open(source) as image:
+                image_width, image_height = image.size
+
+            lines: List[str] = []
+            for box, label in zip(target["boxes"].tolist(), target["labels"].tolist()):
+                converted = xyxy_to_yolo(box, image_width, image_height)
+                if converted is None:
+                    skipped_count += 1
+                    continue
+                if not 0 <= int(label) < dataset.num_classes:
+                    raise ValueError(f"YOLO 클래스 ID 범위 오류: {label}")
+                lines.append(f"{int(label)} " + " ".join(f"{value:.6f}" for value in converted))
+                object_count += 1
+
+            shutil.copy2(source, directories[split]["images"] / source.name)
+            (directories[split]["labels"] / f"{source.stem}.txt").write_text(
+                "\n".join(lines), encoding="utf-8"
+            )
+
+        statistics[split] = {
+            "images": len(indices), "objects": object_count, "skipped_boxes": skipped_count
+        }
+
+    names = [dataset.get_class_name(class_id) for class_id in range(dataset.num_classes)]
+    yaml_lines = [
+        f"path: {json.dumps(str(output_path), ensure_ascii=False)}",
+        "train: images/train",
+        "val: images/val",
+        "test: images/test",
+        f"nc: {dataset.num_classes}",
+        "names:",
+        *(f"  {index}: {json.dumps(name, ensure_ascii=False)}" for index, name in enumerate(names)),
+    ]
+    yaml_path = output_path / "data.yaml"
+    yaml_path.write_text("\n".join(yaml_lines) + "\n", encoding="utf-8")
+
+    group_sets = {
+        split: {dataset.samples[index]["metadata"]["combination_key"] for index in indices}
+        for split, indices in split_indices.items()
+    }
+    if not (group_sets["train"].isdisjoint(group_sets["val"])
+            and group_sets["train"].isdisjoint(group_sets["test"])
+            and group_sets["val"].isdisjoint(group_sets["test"])):
+        raise RuntimeError("combination_key가 split 사이에 중복되었습니다.")
+
+    return {
+        "dataset": dataset,
+        "output_dir": output_path,
+        "yaml_path": yaml_path,
+        "split_indices": split_indices,
+        "statistics": statistics,
+    }
