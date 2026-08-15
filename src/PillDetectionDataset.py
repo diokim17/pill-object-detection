@@ -303,14 +303,19 @@ class PillDetectionDataset(Dataset):
         """
 
         if parsed.is_copy_paste:
-            annotation_path = self.annotation_dir / f"{image_path.stem}.json"
-            if not annotation_path.is_file():
+            expected_name = f"{image_path.stem}.json"
+            direct_path = self.annotation_dir / expected_name
+            json_files = (
+                [direct_path]
+                if direct_path.is_file()
+                else sorted(self.annotation_dir.rglob(expected_name))
+            )
+            if len(json_files) != 1:
                 self._handle_problem(
-                    f"합성 이미지와 동일 basename의 annotation이 없습니다: {annotation_path}",
-                    FileNotFoundError,
+                    f"합성 이미지 {image_path.name}의 동일 basename JSON은 "
+                    f"정확히 1개여야 하지만 {len(json_files)}개입니다."
                 )
-                return []
-            return [annotation_path]
+            return json_files
 
         if parsed.is_additional_ts:
             expected_name = f"{image_path.stem}.json"
@@ -1262,6 +1267,46 @@ def prepare_ultralytics_dataset(
         strict=strict,
         validate_image_size=True,
     )
+
+    return prepare_ultralytics_dataset_from_dataset(
+        dataset=dataset,
+        output_dir=output_dir,
+        train_ratio=train_ratio,
+        val_ratio=val_ratio,
+        test_ratio=test_ratio,
+        seed=seed,
+    )
+
+
+def prepare_ultralytics_dataset_from_dataset(
+    dataset: PillDetectionDataset,
+    output_dir: PathLike,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """기생성된 Dataset을 Ultralytics YOLO 폴더 형식으로 변환합니다.
+
+    ``dataset.label_offset`` 값과 관계없이 YOLO 클래스 ID는 항상
+    ``0``부터 ``num_classes - 1``까지 기록합니다. 출력 폴더에 기존
+    이미지/라벨이 있으면 결과 혼합을 막기 위해 실패합니다.
+
+    Args:
+        dataset:
+            변환할 :class:`PillDetectionDataset` 인스턴스입니다.
+        output_dir:
+            ``images/{train,val,test}``, ``labels/{train,val,test}``,
+            ``data.yaml``을 생성할 출력 경로입니다.
+        train_ratio, val_ratio, test_ratio:
+            combination_key 그룹을 나눌 split 비율입니다. 합은 1이어야 합니다.
+        seed:
+            split 재현성을 위한 난수 seed입니다.
+    """
+
+    if not isinstance(dataset, PillDetectionDataset):
+        raise TypeError("dataset은 PillDetectionDataset 인스턴스여야 합니다.")
+
     split_indices = split_indices_by_combination_key(
         dataset, train_ratio, val_ratio, test_ratio, seed
     )
@@ -1296,9 +1341,13 @@ def prepare_ultralytics_dataset(
                 if converted is None:
                     skipped_count += 1
                     continue
-                if not 0 <= int(label) < dataset.num_classes:
-                    raise ValueError(f"YOLO 클래스 ID 범위 오류: {label}")
-                lines.append(f"{int(label)} " + " ".join(f"{value:.6f}" for value in converted))
+                yolo_label = int(label) - dataset.label_offset
+                if not 0 <= yolo_label < dataset.num_classes:
+                    raise ValueError(
+                        "YOLO 클래스 ID 변환 범위 오류: "
+                        f"label={label}, label_offset={dataset.label_offset}"
+                    )
+                lines.append(f"{yolo_label} " + " ".join(f"{value:.6f}" for value in converted))
                 object_count += 1
 
             shutil.copy2(source, directories[split]["images"] / source.name)
@@ -1310,7 +1359,10 @@ def prepare_ultralytics_dataset(
             "images": len(indices), "objects": object_count, "skipped_boxes": skipped_count
         }
 
-    names = [dataset.get_class_name(class_id) for class_id in range(dataset.num_classes)]
+    names = [
+        dataset.get_class_name(class_id + dataset.label_offset)
+        for class_id in range(dataset.num_classes)
+    ]
     yaml_lines = [
         f"path: {json.dumps(str(output_path), ensure_ascii=False)}",
         "train: images/train",
