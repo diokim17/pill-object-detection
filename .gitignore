@@ -40,6 +40,7 @@ env/
 data/dataset/cleaning_data/**
 data/processed/images/**
 data/processed/labels/**
+data/**
 
 
 # Keep directory structure

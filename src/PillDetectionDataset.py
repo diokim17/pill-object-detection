@@ -305,11 +305,7 @@ class PillDetectionDataset(Dataset):
         if parsed.is_copy_paste:
             expected_name = f"{image_path.stem}.json"
             direct_path = self.annotation_dir / expected_name
-            json_files = (
-                [direct_path]
-                if direct_path.is_file()
-                else sorted(self.annotation_dir.rglob(expected_name))
-            )
+            json_files = [direct_path] if direct_path.is_file() else []
             if len(json_files) != 1:
                 self._handle_problem(
                     f"합성 이미지 {image_path.name}의 동일 basename JSON은 "
