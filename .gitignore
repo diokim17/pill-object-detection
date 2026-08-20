@@ -36,40 +36,23 @@ env/
 # ==================================================
 # Dataset
 # ==================================================
-# Ignore all dataset files
-data/dataset/cleaning_data/**
-data/processed/images/**
-data/processed/labels/**
+# Ignore all data contents by default
 data/**
 
-
-# Keep directory structure
-!data/processed/images/train/
-!data/processed/images/train/.gitkeep
-!data/processed/images/val/
-!data/processed/images/val/.gitkeep
-!data/processed/images/test/
-!data/processed/images/test/.gitkeep
-
-!data/processed/labels/train/
-!data/processed/labels/train/.gitkeep
-!data/processed/labels/val/
-!data/processed/labels/val/.gitkeep
-!data/processed/labels/test/
-!data/processed/labels/test/.gitkeep
-
-# Keep dataset config
-!data/processed/data.yaml
+# Keep only the directory skeleton and example configuration
+!data/**/
+!data/**/.gitkeep
+!data/**/*.yaml.example
 
 # ==================================================
 # Outputs
 # ==================================================
-outputs/checkpoints/
-outputs/predictions/
-outputs/figures/
+# Ignore generated outputs by default
+outputs/**
 
-# Keep Kaggle submission files
-!outputs/submissions/
+# Keep only the output directory skeleton
+!outputs/**/
+!outputs/**/.gitkeep
 
 # ==================================================
 # Model Weights
@@ -85,6 +68,11 @@ outputs/figures/
 wandb/
 runs/
 logs/
+
+# Keep the W&B directory skeleton
+!wandb/
+wandb/**
+!wandb/.gitkeep
 
 # ==================================================
 # Cache

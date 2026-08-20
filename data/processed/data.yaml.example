@@ -1,0 +1,9 @@
+# Copy this file to data.yaml and update the values for your local dataset.
+path: /path/to/data/processed
+train: images/train
+val: images/val
+test: images/test
+nc: 2
+names:
+  0: class_name_0
+  1: class_name_1
