@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000045.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000045.png",
+      "back_color": "연회색 배경",
+      "id": 202608140045,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-016262-033880_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 27417,
+      "iscrowd": 0,
+      "bbox": [
+        377,
+        277,
+        232,
+        183
+      ],
+      "category_id": 31885,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400133,
+      "image_id": 202608140045,
+      "source_object": "K-031885_0_2_1_0_75_160_200.png"
+    },
+    {
+      "area": 20429,
+      "iscrowd": 0,
+      "bbox": [
+        582,
+        828,
+        187,
+        149
+      ],
+      "category_id": 19861,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400134,
+      "image_id": 202608140045,
+      "source_object": "K-019861_0_1_1_2_90_220_200.png"
+    },
+    {
+      "area": 25244,
+      "iscrowd": 0,
+      "bbox": [
+        165,
+        829,
+        197,
+        226
+      ],
+      "category_id": 27993,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400135,
+      "image_id": 202608140045,
+      "source_object": "K-027993_0_2_0_2_75_300_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 19861,
+      "name": "노바스크정 5mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27993,
+      "name": "졸로푸트정 100mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 31885,
+      "name": "자누메트엑스알서방정 100/1000mg"
+    }
+  ]
+}

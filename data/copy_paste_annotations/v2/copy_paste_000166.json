@@ -1,0 +1,109 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000166.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000166.png",
+      "back_color": "연회색 배경",
+      "id": 202608150066,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-001900-016551-029345-033208_0_2_0_2_75_000_200.png",
+      "background_patch": [
+        400,
+        960,
+        620,
+        1180
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 20528,
+      "iscrowd": 0,
+      "bbox": [
+        598,
+        892,
+        160,
+        164
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500211,
+      "image_id": 202608150066,
+      "source_object": "K-016232_0_2_0_2_70_200_200.png"
+    },
+    {
+      "area": 31524,
+      "iscrowd": 0,
+      "bbox": [
+        216,
+        135,
+        200,
+        203
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500212,
+      "image_id": 202608150066,
+      "source_object": "K-016262_0_1_0_2_75_060_200.png"
+    },
+    {
+      "area": 26795,
+      "iscrowd": 0,
+      "bbox": [
+        100,
+        762,
+        226,
+        174
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500213,
+      "image_id": 202608150066,
+      "source_object": "K-032310_0_0_0_0_90_240_200.png"
+    },
+    {
+      "area": 31972,
+      "iscrowd": 0,
+      "bbox": [
+        545,
+        239,
+        193,
+        240
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500214,
+      "image_id": 202608150066,
+      "source_object": "K-038162_0_2_1_0_75_120_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 32310,
+      "name": "글리아타민연질캡슐"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

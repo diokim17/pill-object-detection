@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000052.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000052.png",
+      "back_color": "연회색 배경",
+      "id": 202608140052,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-029667-041768_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 27403,
+      "iscrowd": 0,
+      "bbox": [
+        630,
+        832,
+        186,
+        239
+      ],
+      "category_id": 12081,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400155,
+      "image_id": 202608140052,
+      "source_object": "K-012081_0_0_0_1_90_100_200.png"
+    },
+    {
+      "area": 25915,
+      "iscrowd": 0,
+      "bbox": [
+        163,
+        298,
+        186,
+        180
+      ],
+      "category_id": 33208,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400156,
+      "image_id": 202608140052,
+      "source_object": "K-033208_0_1_1_1_60_040_200.png"
+    },
+    {
+      "area": 15768,
+      "iscrowd": 0,
+      "bbox": [
+        642,
+        285,
+        129,
+        157
+      ],
+      "category_id": 27777,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400157,
+      "image_id": 202608140052,
+      "source_object": "K-027777_0_1_0_2_70_300_200.png"
+    },
+    {
+      "area": 32769,
+      "iscrowd": 0,
+      "bbox": [
+        64,
+        859,
+        219,
+        240
+      ],
+      "category_id": 31885,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400158,
+      "image_id": 202608140052,
+      "source_object": "K-031885_0_0_1_0_60_320_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12081,
+      "name": "리렉스펜정 300mg/PTP"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27777,
+      "name": "카나브정 60mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 31885,
+      "name": "자누메트엑스알서방정 100/1000mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33208,
+      "name": "에스원엠프정 20mg"
+    }
+  ]
+}

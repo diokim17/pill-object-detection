@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000094.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000094.png",
+      "back_color": "연회색 배경",
+      "id": 202608140094,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-029667-031863_0_2_0_2_75_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 15814,
+      "iscrowd": 0,
+      "bbox": [
+        586,
+        859,
+        140,
+        154
+      ],
+      "category_id": 27777,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400323,
+      "image_id": 202608140094,
+      "source_object": "K-027777_0_0_0_2_60_140_200.png"
+    },
+    {
+      "area": 32080,
+      "iscrowd": 0,
+      "bbox": [
+        140,
+        117,
+        208,
+        248
+      ],
+      "category_id": 31885,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400324,
+      "image_id": 202608140094,
+      "source_object": "K-031885_0_2_1_0_90_320_200.png"
+    },
+    {
+      "area": 19170,
+      "iscrowd": 0,
+      "bbox": [
+        146,
+        813,
+        157,
+        156
+      ],
+      "category_id": 4543,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400325,
+      "image_id": 202608140094,
+      "source_object": "K-004543_0_0_0_2_90_200_200.png"
+    },
+    {
+      "area": 26302,
+      "iscrowd": 0,
+      "bbox": [
+        623,
+        279,
+        184,
+        184
+      ],
+      "category_id": 21771,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400326,
+      "image_id": 202608140094,
+      "source_object": "K-021771_0_0_1_1_90_140_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 4543,
+      "name": "에어탈정(아세클로페낙)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 21771,
+      "name": "라비에트정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27777,
+      "name": "카나브정 60mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 31885,
+      "name": "자누메트엑스알서방정 100/1000mg"
+    }
+  ]
+}

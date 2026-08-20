@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000053.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000053.png",
+      "back_color": "연회색 배경",
+      "id": 202608140053,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-003832-022074_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 26213,
+      "iscrowd": 0,
+      "bbox": [
+        638,
+        230,
+        182,
+        183
+      ],
+      "category_id": 22347,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400159,
+      "image_id": 202608140053,
+      "source_object": "K-022347_0_1_0_1_75_120_200.png"
+    },
+    {
+      "area": 13272,
+      "iscrowd": 0,
+      "bbox": [
+        668,
+        774,
+        138,
+        152
+      ],
+      "category_id": 12247,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400160,
+      "image_id": 202608140053,
+      "source_object": "K-012247_0_1_0_2_60_000_200.png"
+    },
+    {
+      "area": 30623,
+      "iscrowd": 0,
+      "bbox": [
+        177,
+        257,
+        217,
+        230
+      ],
+      "category_id": 34597,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400161,
+      "image_id": 202608140053,
+      "source_object": "K-034597_0_0_0_0_90_180_200.png"
+    },
+    {
+      "area": 24565,
+      "iscrowd": 0,
+      "bbox": [
+        72,
+        786,
+        245,
+        129
+      ],
+      "category_id": 19552,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400162,
+      "image_id": 202608140053,
+      "source_object": "K-019552_0_2_1_1_90_140_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12247,
+      "name": "아빌리파이정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 19552,
+      "name": "트루비타정 60mg/병"
+    },
+    {
+      "supercategory": "pill",
+      "id": 22347,
+      "name": "자누비아정 50mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 34597,
+      "name": "제미메트서방정 50/1000mg"
+    }
+  ]
+}

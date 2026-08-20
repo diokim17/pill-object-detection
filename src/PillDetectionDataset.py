@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import random
 import re
+import shutil
 import warnings
 from copy import deepcopy
 from dataclasses import dataclass
@@ -41,6 +43,8 @@ class ParsedImageName:
     pill_ids: Tuple[str, ...]
     camera_angle: Optional[int]
     suffix_tokens: Tuple[str, ...]
+    is_copy_paste: bool = False
+    is_additional_ts: bool = False
 
 
 @dataclass
@@ -104,6 +108,10 @@ class PillDetectionDataset(Dataset):
         include_raw_metadata:
             True이면 각 객체 metadata에 JSON의 images/categories/annotation
             원본 레코드를 추가로 보관합니다. 메모리 사용량이 증가할 수 있습니다.
+        additional_ts_mapping_annotation_dir:
+            추가 수집 TS의 ``category_id=1 / Drug``를 기존 Train 클래스 ID로
+            변환할 때 참조할 기존 Train annotation 폴더입니다. 지정하지 않으면
+            현재 annotation 폴더 안의 기존 Train JSON으로 매핑을 구성합니다.
 
     Returns from __getitem__:
         image:
@@ -120,6 +128,10 @@ class PillDetectionDataset(Dataset):
     _FILENAME_PATTERN = re.compile(
         r"^(?P<combo>K(?:-\d{6}){3,4})_(?P<suffix>.+)$"
     )
+    _COPY_PASTE_FILENAME_PATTERN = re.compile(r"^copy_paste_\d+$")
+    _ADDITIONAL_TS_FILENAME_PATTERN = re.compile(
+        r"^(?P<drug>K-\d{6})_(?P<suffix>.+)$"
+    )
 
     def __init__(
         self,
@@ -132,6 +144,7 @@ class PillDetectionDataset(Dataset):
         strict: bool = True,
         validate_image_size: bool = False,
         include_raw_metadata: bool = False,
+        additional_ts_mapping_annotation_dir: Optional[PathLike] = None,
     ) -> None:
         super().__init__()
 
@@ -147,8 +160,20 @@ class PillDetectionDataset(Dataset):
         self.strict = strict
         self.validate_image_size = validate_image_size
         self.include_raw_metadata = include_raw_metadata
+        self.additional_ts_mapping_annotation_dir = (
+            Path(additional_ts_mapping_annotation_dir)
+            if additional_ts_mapping_annotation_dir is not None
+            else self.annotation_dir
+        )
 
         self._validate_directories()
+
+        # 추가 TS의 categories.id=1 / Drug는 실제 학습 클래스가 아니므로,
+        # 기존 Train JSON만 사용해 식별자별 실제 category_id 매핑을 구성합니다.
+        (
+            self._additional_ts_category_maps,
+            self._additional_ts_category_records,
+        ) = self._build_additional_ts_category_mapping()
 
         # JSON을 정확히 한 번만 읽은 뒤 임시 CachedSample 목록을 생성합니다.
         raw_samples, category_records = self._build_cache_once()
@@ -203,6 +228,31 @@ class PillDetectionDataset(Dataset):
         path = Path(image_path)
         match = cls._FILENAME_PATTERN.match(path.stem)
         if match is None:
+            if cls._COPY_PASTE_FILENAME_PATTERN.fullmatch(path.stem):
+                return ParsedImageName(
+                    combination_key=path.stem,
+                    pill_ids=(),
+                    camera_angle=None,
+                    suffix_tokens=(),
+                    is_copy_paste=True,
+                )
+            additional_ts_match = cls._ADDITIONAL_TS_FILENAME_PATTERN.match(path.stem)
+            if additional_ts_match is not None:
+                combination_key = additional_ts_match.group("drug")
+                suffix_tokens = tuple(additional_ts_match.group("suffix").split("_"))
+                camera_angle: Optional[int] = None
+                if len(suffix_tokens) > 4:
+                    try:
+                        camera_angle = int(suffix_tokens[4])
+                    except ValueError:
+                        camera_angle = None
+                return ParsedImageName(
+                    combination_key=combination_key,
+                    pill_ids=(combination_key.split("-")[1],),
+                    camera_angle=camera_angle,
+                    suffix_tokens=suffix_tokens,
+                    is_additional_ts=True,
+                )
             raise ValueError(
                 "지원하지 않는 이미지 파일명 형식입니다: "
                 f"{path.name}"
@@ -252,6 +302,32 @@ class PillDetectionDataset(Dataset):
         하위의 각 K-{ID} 폴더에서 이미지 stem과 동일한 JSON 파일을 찾습니다.
         """
 
+        if parsed.is_copy_paste:
+            expected_name = f"{image_path.stem}.json"
+            direct_path = self.annotation_dir / expected_name
+            json_files = [direct_path] if direct_path.is_file() else []
+            if len(json_files) != 1:
+                self._handle_problem(
+                    f"합성 이미지 {image_path.name}의 동일 basename JSON은 "
+                    f"정확히 1개여야 하지만 {len(json_files)}개입니다."
+                )
+            return json_files
+
+        if parsed.is_additional_ts:
+            expected_name = f"{image_path.stem}.json"
+            direct_path = self.annotation_dir / expected_name
+            json_files = (
+                [direct_path]
+                if direct_path.is_file()
+                else sorted(self.annotation_dir.rglob(expected_name))
+            )
+            if len(json_files) != 1:
+                self._handle_problem(
+                    f"추가 TS 이미지 {image_path.name}의 동일 basename JSON은 "
+                    f"정확히 1개여야 하지만 {len(json_files)}개입니다."
+                )
+            return json_files
+
         annotation_group_dir = self.annotation_dir / f"{parsed.combination_key}_json"
         if not annotation_group_dir.is_dir():
             self._handle_problem(
@@ -278,7 +354,9 @@ class PillDetectionDataset(Dataset):
         """모든 JSON을 한 번만 읽어 전체 annotation 캐시를 생성합니다."""
 
         raw_samples: List[CachedSample] = []
-        category_records: Dict[int, Dict[str, Any]] = {}
+        category_records: Dict[int, Dict[str, Any]] = dict(
+            self._additional_ts_category_records
+        )
 
         image_files = self._iter_image_files()
         if not image_files:
@@ -300,42 +378,92 @@ class PillDetectionDataset(Dataset):
             sample_width: Optional[int] = None
             sample_height: Optional[int] = None
 
-            for json_path in json_files:
+            sample_image_id = image_id
+
+            if parsed.is_copy_paste:
+                json_path = json_files[0]
                 try:
                     with json_path.open("r", encoding="utf-8") as file:
                         payload = json.load(file)
-                    cached_object, image_record, category_record = self._parse_json_payload(
-                        payload=payload,
-                        json_path=json_path,
+                    synthetic_objects, image_record, synthetic_categories = (
+                        self._parse_copy_paste_json_payload(
+                            payload=payload,
+                            json_path=json_path,
+                            image_path=image_path,
+                        )
                     )
                 except (OSError, json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
                     self._handle_problem(
                         f"JSON 파싱 실패: {json_path}\n원인: {exc}",
                         type(exc) if isinstance(exc, Exception) else RuntimeError,
                     )
-                    continue
-
-                objects.append(cached_object)
-
-                width = image_record.get("width")
-                height = image_record.get("height")
-                if width is not None:
-                    sample_width = int(width)
-                if height is not None:
-                    sample_height = int(height)
-
-                category_id = cached_object.category_id
-                if category_record:
-                    category_records.setdefault(category_id, category_record)
                 else:
-                    category_records.setdefault(
-                        category_id,
-                        {
-                            "id": category_id,
-                            "name": cached_object.metadata.get("drug_name", str(category_id)),
-                            "supercategory": "pill",
-                        },
-                    )
+                    objects.extend(synthetic_objects)
+                    sample_width = self._optional_int(image_record.get("width"))
+                    sample_height = self._optional_int(image_record.get("height"))
+                    if image_record.get("id") not in (None, ""):
+                        sample_image_id = int(image_record["id"])
+                    for category_id, category_record in synthetic_categories.items():
+                        category_records.setdefault(category_id, category_record)
+            else:
+                for json_path in json_files:
+                    try:
+                        with json_path.open("r", encoding="utf-8") as file:
+                            payload = json.load(file)
+                        cached_object, image_record, category_record = self._parse_json_payload(
+                            payload=payload,
+                            json_path=json_path,
+                        )
+                    except (OSError, json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
+                        self._handle_problem(
+                            f"JSON 파싱 실패: {json_path}\n원인: {exc}",
+                            type(exc) if isinstance(exc, Exception) else RuntimeError,
+                        )
+                        continue
+
+                    objects.append(cached_object)
+
+                    width = image_record.get("width")
+                    height = image_record.get("height")
+                    if width is not None:
+                        sample_width = int(width)
+                    if height is not None:
+                        sample_height = int(height)
+
+                    if parsed.is_additional_ts:
+                        mapped = self._resolve_additional_ts_category(
+                            cached_object.metadata
+                        )
+                        if mapped is None:
+                            self._handle_problem(
+                                "추가 TS의 실제 Train category_id를 매핑할 수 없어 "
+                                f"샘플을 제외합니다: {json_path}",
+                                ValueError,
+                            )
+                            objects.pop()
+                            continue
+                        mapped_category_id, mapping_key = mapped
+                        cached_object.metadata["source_category_id"] = cached_object.category_id
+                        cached_object.metadata["source_category_name"] = category_record.get("name")
+                        cached_object.metadata["category_mapping_key"] = mapping_key
+                        cached_object.category_id = mapped_category_id
+                        category_record = dict(
+                            self._additional_ts_category_records[mapped_category_id]
+                        )
+                        cached_object.metadata["category_name"] = category_record.get("name")
+
+                    category_id = cached_object.category_id
+                    if category_record:
+                        category_records.setdefault(category_id, category_record)
+                    else:
+                        category_records.setdefault(
+                            category_id,
+                            {
+                                "id": category_id,
+                                "name": cached_object.metadata.get("drug_name", str(category_id)),
+                                "supercategory": "pill",
+                            },
+                        )
 
             if not objects:
                 self._handle_problem(
@@ -343,22 +471,23 @@ class PillDetectionDataset(Dataset):
                 )
                 continue
 
-            # 파일명 ID와 JSON의 drug ID를 비교해 데이터 오류를 조기에 찾습니다.
-            json_pill_ids = {
-                self._normalize_pill_id(obj.metadata.get("drug_code")) for obj in objects
-            }
-            filename_pill_ids = set(parsed.pill_ids)
-            if None not in json_pill_ids and json_pill_ids != filename_pill_ids:
-                self._handle_problem(
-                    f"파일명 알약 ID와 JSON drug_N이 일치하지 않습니다. "
-                    f"image={image_path.name}, filename={sorted(filename_pill_ids)}, "
-                    f"json={sorted(json_pill_ids)}"
-                )
+            # 기존 Train에서만 파일명 ID와 JSON의 drug ID를 비교합니다.
+            if not parsed.is_copy_paste and not parsed.is_additional_ts:
+                json_pill_ids = {
+                    self._normalize_pill_id(obj.metadata.get("drug_code")) for obj in objects
+                }
+                filename_pill_ids = set(parsed.pill_ids)
+                if None not in json_pill_ids and json_pill_ids != filename_pill_ids:
+                    self._handle_problem(
+                        f"파일명 알약 ID와 JSON drug_N이 일치하지 않습니다. "
+                        f"image={image_path.name}, filename={sorted(filename_pill_ids)}, "
+                        f"json={sorted(json_pill_ids)}"
+                    )
 
             raw_samples.append(
                 CachedSample(
                     image_path=image_path,
-                    image_id=image_id,
+                    image_id=sample_image_id,
                     parsed_name=parsed,
                     objects=objects,
                     width=sample_width,
@@ -370,6 +499,202 @@ class PillDetectionDataset(Dataset):
             raise RuntimeError("사용 가능한 image/annotation 샘플을 찾지 못했습니다.")
 
         return raw_samples, category_records
+
+    def _build_additional_ts_category_mapping(
+        self,
+    ) -> Tuple[Dict[str, Dict[str, int]], Dict[int, Dict[str, Any]]]:
+        """기존 Train JSON에서 추가 TS 식별자 → 실제 category_id 맵을 만듭니다."""
+
+        # 기존 Train 및 Copy-Paste 전용 데이터셋에서는 이 분기를 완전히 건너뛰어
+        # 기존 클래스 수집 방식과 로딩 동작을 그대로 보존합니다.
+        has_additional_ts = any(
+            self._ADDITIONAL_TS_FILENAME_PATTERN.match(path.stem)
+            for path in self._iter_image_files()
+        )
+        if not has_additional_ts:
+            return (
+                {key: {} for key in ("drug_N", "dl_mapping_code", "item_seq", "drug_name")},
+                {},
+            )
+
+        mapping_sets: Dict[str, Dict[str, set[int]]] = {
+            key: {} for key in ("drug_N", "dl_mapping_code", "item_seq", "drug_name")
+        }
+        category_records: Dict[int, Dict[str, Any]] = {}
+        root = self.additional_ts_mapping_annotation_dir
+        if not root.is_dir():
+            raise FileNotFoundError(f"추가 TS 매핑용 Train annotation 폴더가 없습니다: {root}")
+
+        for json_path in root.rglob("*.json"):
+            try:
+                with json_path.open("r", encoding="utf-8") as file:
+                    payload = json.load(file)
+            except (OSError, json.JSONDecodeError):
+                continue
+            images = payload.get("images") or []
+            annotations = payload.get("annotations") or []
+            categories = payload.get("categories") or []
+            if not images or not annotations:
+                continue
+            image_record = images[0]
+            category_by_id = {
+                int(record["id"]): dict(record)
+                for record in categories
+                if isinstance(record, Mapping) and record.get("id") is not None
+            }
+            for annotation in annotations:
+                try:
+                    category_id = int(annotation["category_id"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                category_record = category_by_id.get(category_id, {})
+                if category_id == 1 and str(category_record.get("name", "")).strip() == "Drug":
+                    continue
+                category_records.setdefault(
+                    category_id,
+                    category_record or {
+                        "id": category_id,
+                        "name": image_record.get("dl_name", str(category_id)),
+                        "supercategory": "pill",
+                    },
+                )
+                values = {
+                    "drug_N": self._normalize_mapping_code(image_record.get("drug_N")),
+                    "dl_mapping_code": self._normalize_mapping_code(
+                        image_record.get("dl_mapping_code")
+                    ),
+                    "item_seq": self._normalize_mapping_text(image_record.get("item_seq")),
+                    "drug_name": self._normalize_mapping_text(
+                        image_record.get("dl_name") or category_record.get("name")
+                    ),
+                }
+                for key, value in values.items():
+                    if value is not None:
+                        mapping_sets[key].setdefault(value, set()).add(category_id)
+
+        mappings: Dict[str, Dict[str, int]] = {}
+        for key, records in mapping_sets.items():
+            conflicts = {value: ids for value, ids in records.items() if len(ids) > 1}
+            if conflicts:
+                preview = list(conflicts.items())[:5]
+                raise ValueError(f"추가 TS 매핑 키 충돌({key}): {preview}")
+            mappings[key] = {value: next(iter(ids)) for value, ids in records.items()}
+        return mappings, category_records
+
+    def _resolve_additional_ts_category(
+        self, metadata: Mapping[str, Any]
+    ) -> Optional[Tuple[int, str]]:
+        """우선순위에 따라 추가 TS 객체의 실제 Train category_id를 찾습니다."""
+
+        candidates = (
+            ("drug_N", self._normalize_mapping_code(metadata.get("drug_code"))),
+            ("dl_mapping_code", self._normalize_mapping_code(metadata.get("mapping_code"))),
+            ("item_seq", self._normalize_mapping_text(metadata.get("item_seq"))),
+            ("drug_name", self._normalize_mapping_text(metadata.get("drug_name"))),
+        )
+        for key, value in candidates:
+            if value is not None and value in self._additional_ts_category_maps[key]:
+                return self._additional_ts_category_maps[key][value], key
+        return None
+
+    @staticmethod
+    def _normalize_mapping_text(value: Any) -> Optional[str]:
+        if value in (None, ""):
+            return None
+        text = str(value).strip()
+        return text or None
+
+    @classmethod
+    def _normalize_mapping_code(cls, value: Any) -> Optional[str]:
+        normalized = cls._normalize_pill_id(value)
+        if normalized is None:
+            return None
+        return normalized.lstrip("0") or "0"
+
+    def _parse_copy_paste_json_payload(
+        self,
+        payload: Mapping[str, Any],
+        json_path: Path,
+        image_path: Path,
+    ) -> Tuple[List[CachedObject], Dict[str, Any], Dict[int, Dict[str, Any]]]:
+        """합성 이미지 하나의 multi-object JSON을 전부 CachedObject로 변환합니다."""
+
+        images = payload.get("images", [])
+        annotations = payload.get("annotations", [])
+        categories = payload.get("categories", [])
+
+        if len(images) != 1:
+            raise ValueError(f"합성 JSON의 images 항목은 정확히 1개여야 합니다: {len(images)}")
+        if not annotations:
+            raise ValueError("annotations 항목이 비어 있습니다.")
+
+        image_record = dict(images[0])
+        json_file_name = image_record.get("file_name") or image_record.get("imgfile")
+        if json_file_name != image_path.name:
+            raise ValueError(
+                f"합성 image/JSON file_name 불일치: image={image_path.name}, json={json_file_name}"
+            )
+
+        categories_by_id: Dict[int, Dict[str, Any]] = {}
+        for record in categories:
+            category_record = dict(record)
+            category_id = int(category_record["id"])
+            if category_id in categories_by_id:
+                raise ValueError(f"합성 JSON categories.id 중복: {category_id}")
+            categories_by_id[category_id] = category_record
+
+        image_id = self._optional_int(image_record.get("id"))
+        objects: List[CachedObject] = []
+        for annotation in annotations:
+            annotation_record = dict(annotation)
+            category_id = int(annotation_record["category_id"])
+            if category_id not in categories_by_id:
+                raise ValueError(
+                    f"annotation category_id에 대응하는 categories 레코드가 없습니다: {category_id}"
+                )
+
+            annotation_image_id = self._optional_int(annotation_record.get("image_id"))
+            if (
+                image_id is not None
+                and annotation_image_id is not None
+                and annotation_image_id != image_id
+            ):
+                raise ValueError(
+                    f"합성 JSON image_id 불일치: image={image_id}, annotation={annotation_image_id}"
+                )
+
+            bbox = annotation_record.get("bbox")
+            if not isinstance(bbox, Sequence) or len(bbox) != 4:
+                raise ValueError(f"bbox 형식이 올바르지 않습니다: {bbox}")
+            x, y, width, height = map(float, bbox)
+            if width <= 0 or height <= 0:
+                raise ValueError(f"bbox의 width/height는 양수여야 합니다: {bbox}")
+
+            area_value = annotation_record.get("area", width * height)
+            area = float(area_value)
+            if area <= 0:
+                area = width * height
+
+            category_record = categories_by_id[category_id]
+            metadata = self._extract_metadata(
+                image_record=image_record,
+                annotation_record=annotation_record,
+                category_record=category_record,
+                json_path=json_path,
+            )
+            objects.append(
+                CachedObject(
+                    bbox_xyxy=(x, y, x + width, y + height),
+                    category_id=category_id,
+                    area=area,
+                    iscrowd=int(annotation_record.get("iscrowd", 0)),
+                    annotation_id=self._optional_int(annotation_record.get("id")),
+                    ignore=int(annotation_record.get("ignore", 0)),
+                    metadata=metadata,
+                )
+            )
+
+        return objects, image_record, categories_by_id
 
     def _parse_json_payload(
         self,
@@ -402,6 +727,36 @@ class PillDetectionDataset(Dataset):
         x2 = x + width
         y2 = y + height
         category_id = int(annotation_record["category_id"])
+
+        # 추가 데이터 일부는 실제 약 정보가 images에 있음에도 COCO category가
+        # {id: 1, name: 'Drug'}라는 placeholder로 저장되어 있습니다.
+        # 이 경우 drug_N과 dl_name을 사용해 실제 category 정보를 복원합니다.
+        is_placeholder_category = (
+            category_id == 1
+            and self._optional_int(category_record.get("id")) == 1
+            and str(category_record.get("name", "")).strip().lower() == "drug"
+        )
+        if is_placeholder_category:
+            normalized_pill_id = self._normalize_pill_id(image_record.get("drug_N"))
+            if normalized_pill_id is None or not normalized_pill_id.isdigit():
+                raise ValueError(
+                    "placeholder category를 복원할 drug_N이 올바르지 않습니다: "
+                    f"{image_record.get('drug_N')}"
+                )
+
+            category_id = int(normalized_pill_id)
+            drug_name = image_record.get("dl_name")
+            if drug_name is None or not str(drug_name).strip():
+                drug_name = f"K-{normalized_pill_id}"
+
+            # 아래 로직 전체가 보정된 값을 사용하도록 복사본을 갱신합니다.
+            annotation_record["category_id"] = category_id
+            category_record = {
+                **category_record,
+                "id": category_id,
+                "name": str(drug_name),
+                "supercategory": category_record.get("supercategory", "pill"),
+            }
 
         # area 값이 없거나 잘못된 경우 bbox 면적으로 보정합니다.
         area_value = annotation_record.get("area", width * height)
@@ -810,3 +1165,225 @@ def detection_collate_fn(
 
     images, targets, metadata = zip(*batch)
     return list(images), list(targets), list(metadata)
+
+
+def xyxy_to_yolo(
+    box: Sequence[float], image_width: int, image_height: int
+) -> Optional[Tuple[float, float, float, float]]:
+    """픽셀 ``xyxy`` bbox를 YOLO의 정규화된 ``xywh``로 변환합니다."""
+
+    if image_width <= 0 or image_height <= 0:
+        raise ValueError("image_width와 image_height는 양수여야 합니다.")
+
+    x1, y1, x2, y2 = map(float, box)
+    x1 = max(0.0, min(x1, float(image_width)))
+    y1 = max(0.0, min(y1, float(image_height)))
+    x2 = max(0.0, min(x2, float(image_width)))
+    y2 = max(0.0, min(y2, float(image_height)))
+
+    width = x2 - x1
+    height = y2 - y1
+    if width <= 0 or height <= 0:
+        return None
+
+    return (
+        ((x1 + x2) / 2.0) / image_width,
+        ((y1 + y2) / 2.0) / image_height,
+        width / image_width,
+        height / image_height,
+    )
+
+
+def split_indices_by_combination_key(
+    dataset: PillDetectionDataset,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+) -> Dict[str, List[int]]:
+    """같은 알약 조합이 서로 다른 split에 섞이지 않도록 인덱스를 나눕니다."""
+
+    ratios = (train_ratio, val_ratio, test_ratio)
+    if any(ratio < 0 for ratio in ratios) or not np.isclose(sum(ratios), 1.0):
+        raise ValueError("train_ratio, val_ratio, test_ratio는 0 이상이고 합이 1이어야 합니다.")
+
+    grouped: Dict[str, List[int]] = {}
+    for index, sample in enumerate(dataset.samples):
+        key = str(sample["metadata"]["combination_key"])
+        grouped.setdefault(key, []).append(index)
+
+    keys = sorted(grouped)
+    random.Random(seed).shuffle(keys)
+    if len(keys) < sum(ratio > 0 for ratio in ratios):
+        raise ValueError("0보다 큰 각 split에 하나씩 배정할 만큼 combination_key가 충분하지 않습니다.")
+
+    # 그룹 수를 기준으로 경계를 정해 combination_key 누수를 원천 차단합니다.
+    train_end = round(len(keys) * train_ratio)
+    val_end = train_end + round(len(keys) * val_ratio)
+    train_end = min(max(train_end, int(train_ratio > 0)), len(keys))
+    val_end = min(max(val_end, train_end + int(val_ratio > 0)), len(keys))
+
+    key_splits = {
+        "train": keys[:train_end],
+        "val": keys[train_end:val_end],
+        "test": keys[val_end:],
+    }
+    if test_ratio > 0 and not key_splits["test"]:
+        donor = "val" if len(key_splits["val"]) > 1 else "train"
+        key_splits["test"].append(key_splits[donor].pop())
+
+    return {
+        split: sorted(index for key in split_keys for index in grouped[key])
+        for split, split_keys in key_splits.items()
+    }
+
+
+def prepare_ultralytics_dataset(
+    root: PathLike,
+    output_dir: PathLike,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+    image_dir_name: str = "train_images",
+    annotation_dir_name: str = "train_annotations",
+    strict: bool = False,
+) -> Dict[str, Any]:
+    """원본 데이터셋을 분할하고 Ultralytics YOLO 폴더와 ``data.yaml``을 생성합니다.
+
+    출력 폴더에 기존 이미지/라벨이 있으면 결과 혼합을 막기 위해 실패합니다.
+    반환값에는 dataset, split별 indices/통계, data.yaml 경로가 포함됩니다.
+    """
+
+    dataset = PillDetectionDataset(
+        root=root,
+        image_dir_name=image_dir_name,
+        annotation_dir_name=annotation_dir_name,
+        label_offset=0,
+        strict=strict,
+        validate_image_size=True,
+    )
+
+    return prepare_ultralytics_dataset_from_dataset(
+        dataset=dataset,
+        output_dir=output_dir,
+        train_ratio=train_ratio,
+        val_ratio=val_ratio,
+        test_ratio=test_ratio,
+        seed=seed,
+    )
+
+
+def prepare_ultralytics_dataset_from_dataset(
+    dataset: PillDetectionDataset,
+    output_dir: PathLike,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    test_ratio: float = 0.1,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """기생성된 Dataset을 Ultralytics YOLO 폴더 형식으로 변환합니다.
+
+    ``dataset.label_offset`` 값과 관계없이 YOLO 클래스 ID는 항상
+    ``0``부터 ``num_classes - 1``까지 기록합니다. 출력 폴더에 기존
+    이미지/라벨이 있으면 결과 혼합을 막기 위해 실패합니다.
+
+    Args:
+        dataset:
+            변환할 :class:`PillDetectionDataset` 인스턴스입니다.
+        output_dir:
+            ``images/{train,val,test}``, ``labels/{train,val,test}``,
+            ``data.yaml``을 생성할 출력 경로입니다.
+        train_ratio, val_ratio, test_ratio:
+            combination_key 그룹을 나눌 split 비율입니다. 합은 1이어야 합니다.
+        seed:
+            split 재현성을 위한 난수 seed입니다.
+    """
+
+    if not isinstance(dataset, PillDetectionDataset):
+        raise TypeError("dataset은 PillDetectionDataset 인스턴스여야 합니다.")
+
+    split_indices = split_indices_by_combination_key(
+        dataset, train_ratio, val_ratio, test_ratio, seed
+    )
+    output_path = Path(output_dir).resolve()
+    directories = {
+        split: {
+            "images": output_path / "images" / split,
+            "labels": output_path / "labels" / split,
+        }
+        for split in ("train", "val", "test")
+    }
+    for split_dirs in directories.values():
+        for directory in split_dirs.values():
+            directory.mkdir(parents=True, exist_ok=True)
+            if any(directory.iterdir()):
+                raise FileExistsError(f"출력 폴더가 비어 있지 않습니다: {directory}")
+
+    statistics: Dict[str, Dict[str, int]] = {}
+    for split, indices in split_indices.items():
+        object_count = 0
+        skipped_count = 0
+        for index in indices:
+            sample = dataset.samples[index]
+            source = Path(sample["image_path"])
+            target = sample["target"]
+            with Image.open(source) as image:
+                image_width, image_height = image.size
+
+            lines: List[str] = []
+            for box, label in zip(target["boxes"].tolist(), target["labels"].tolist()):
+                converted = xyxy_to_yolo(box, image_width, image_height)
+                if converted is None:
+                    skipped_count += 1
+                    continue
+                yolo_label = int(label) - dataset.label_offset
+                if not 0 <= yolo_label < dataset.num_classes:
+                    raise ValueError(
+                        "YOLO 클래스 ID 변환 범위 오류: "
+                        f"label={label}, label_offset={dataset.label_offset}"
+                    )
+                lines.append(f"{yolo_label} " + " ".join(f"{value:.6f}" for value in converted))
+                object_count += 1
+
+            shutil.copy2(source, directories[split]["images"] / source.name)
+            (directories[split]["labels"] / f"{source.stem}.txt").write_text(
+                "\n".join(lines), encoding="utf-8"
+            )
+
+        statistics[split] = {
+            "images": len(indices), "objects": object_count, "skipped_boxes": skipped_count
+        }
+
+    names = [
+        dataset.get_class_name(class_id + dataset.label_offset)
+        for class_id in range(dataset.num_classes)
+    ]
+    yaml_lines = [
+        f"path: {json.dumps(str(output_path), ensure_ascii=False)}",
+        "train: images/train",
+        "val: images/val",
+        "test: images/test",
+        f"nc: {dataset.num_classes}",
+        "names:",
+        *(f"  {index}: {json.dumps(name, ensure_ascii=False)}" for index, name in enumerate(names)),
+    ]
+    yaml_path = output_path / "data.yaml"
+    yaml_path.write_text("\n".join(yaml_lines) + "\n", encoding="utf-8")
+
+    group_sets = {
+        split: {dataset.samples[index]["metadata"]["combination_key"] for index in indices}
+        for split, indices in split_indices.items()
+    }
+    if not (group_sets["train"].isdisjoint(group_sets["val"])
+            and group_sets["train"].isdisjoint(group_sets["test"])
+            and group_sets["val"].isdisjoint(group_sets["test"])):
+        raise RuntimeError("combination_key가 split 사이에 중복되었습니다.")
+
+    return {
+        "dataset": dataset,
+        "output_dir": output_path,
+        "yaml_path": yaml_path,
+        "split_indices": split_indices,
+        "statistics": statistics,
+    }

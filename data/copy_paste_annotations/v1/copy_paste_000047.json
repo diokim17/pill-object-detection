@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000047.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000047.png",
+      "back_color": "연회색 배경",
+      "id": 202608140047,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003544-004543-016548-027993_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 25551,
+      "iscrowd": 0,
+      "bbox": [
+        215,
+        744,
+        158,
+        249
+      ],
+      "category_id": 12778,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400139,
+      "image_id": 202608140047,
+      "source_object": "K-012778_0_2_1_1_75_080_200.png"
+    },
+    {
+      "area": 14314,
+      "iscrowd": 0,
+      "bbox": [
+        657,
+        773,
+        149,
+        159
+      ],
+      "category_id": 12247,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400140,
+      "image_id": 202608140047,
+      "source_object": "K-012247_0_0_0_2_90_340_200.png"
+    },
+    {
+      "area": 22974,
+      "iscrowd": 0,
+      "bbox": [
+        392,
+        277,
+        223,
+        142
+      ],
+      "category_id": 24850,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400141,
+      "image_id": 202608140047,
+      "source_object": "K-024850_0_0_1_0_75_000_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12247,
+      "name": "아빌리파이정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 12778,
+      "name": "다보타민큐정 10mg/병"
+    },
+    {
+      "supercategory": "pill",
+      "id": 24850,
+      "name": "놀텍정 10mg"
+    }
+  ]
+}

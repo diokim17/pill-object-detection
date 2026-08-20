@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000026.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000026.png",
+      "back_color": "연회색 배경",
+      "id": 202608140026,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-003832-021325_0_2_0_2_90_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 25494,
+      "iscrowd": 0,
+      "bbox": [
+        431,
+        184,
+        181,
+        183
+      ],
+      "category_id": 21771,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400076,
+      "image_id": 202608140026,
+      "source_object": "K-021771_0_0_1_0_75_040_200.png"
+    },
+    {
+      "area": 33707,
+      "iscrowd": 0,
+      "bbox": [
+        566,
+        705,
+        244,
+        221
+      ],
+      "category_id": 33009,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400077,
+      "image_id": 202608140026,
+      "source_object": "K-033009_0_0_1_1_90_040_200.png"
+    },
+    {
+      "area": 34554,
+      "iscrowd": 0,
+      "bbox": [
+        157,
+        711,
+        248,
+        233
+      ],
+      "category_id": 30308,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400078,
+      "image_id": 202608140026,
+      "source_object": "K-030308_0_2_0_1_90_340_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 21771,
+      "name": "라비에트정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 30308,
+      "name": "트라젠타듀오정 2.5/850mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33009,
+      "name": "신바로정"
+    }
+  ]
+}

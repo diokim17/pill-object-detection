@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000070.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000070.png",
+      "back_color": "연회색 배경",
+      "id": 202608140070,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003483-016232-020877-030308_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 25796,
+      "iscrowd": 0,
+      "bbox": [
+        240,
+        137,
+        209,
+        215
+      ],
+      "category_id": 12778,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400227,
+      "image_id": 202608140070,
+      "source_object": "K-012778_0_2_1_0_75_120_200.png"
+    },
+    {
+      "area": 27089,
+      "iscrowd": 0,
+      "bbox": [
+        616,
+        288,
+        232,
+        216
+      ],
+      "category_id": 27993,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400228,
+      "image_id": 202608140070,
+      "source_object": "K-027993_0_2_1_1_90_120_200.png"
+    },
+    {
+      "area": 28435,
+      "iscrowd": 0,
+      "bbox": [
+        138,
+        824,
+        222,
+        211
+      ],
+      "category_id": 29451,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400229,
+      "image_id": 202608140070,
+      "source_object": "K-029451_0_0_1_1_90_080_200.png"
+    },
+    {
+      "area": 36265,
+      "iscrowd": 0,
+      "bbox": [
+        533,
+        873,
+        268,
+        196
+      ],
+      "category_id": 33009,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400230,
+      "image_id": 202608140070,
+      "source_object": "K-033009_0_2_1_2_60_240_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12778,
+      "name": "다보타민큐정 10mg/병"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27993,
+      "name": "졸로푸트정 100mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 29451,
+      "name": "레일라정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33009,
+      "name": "신바로정"
+    }
+  ]
+}

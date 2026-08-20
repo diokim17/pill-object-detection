@@ -1,0 +1,104 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000172.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000172.png",
+      "back_color": "연회색 배경",
+      "id": 202608150072,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003351-016232-032310_0_2_0_2_90_000_200.png",
+      "background_patch": [
+        80,
+        320,
+        300,
+        540
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 19249,
+      "iscrowd": 0,
+      "bbox": [
+        666,
+        342,
+        199,
+        126
+      ],
+      "category_id": 36637,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500235,
+      "image_id": 202608150072,
+      "source_object": "K-036637_0_0_0_0_70_180_200.png"
+    },
+    {
+      "area": 26840,
+      "iscrowd": 0,
+      "bbox": [
+        175,
+        724,
+        149,
+        237
+      ],
+      "category_id": 38162,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500236,
+      "image_id": 202608150072,
+      "source_object": "K-038162_0_2_0_0_75_060_200.png"
+    },
+    {
+      "area": 24773,
+      "iscrowd": 0,
+      "bbox": [
+        199,
+        252,
+        137,
+        225
+      ],
+      "category_id": 36637,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500237,
+      "image_id": 202608150072,
+      "source_object": "K-036637_0_2_1_1_60_280_200.png"
+    },
+    {
+      "area": 19108,
+      "iscrowd": 0,
+      "bbox": [
+        581,
+        885,
+        156,
+        158
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500238,
+      "image_id": 202608150072,
+      "source_object": "K-016232_0_1_0_2_70_200_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 36637,
+      "name": "로수젯정10/5밀리그램"
+    },
+    {
+      "supercategory": "pill",
+      "id": 38162,
+      "name": "로수바미브정 10/20mg"
+    }
+  ]
+}

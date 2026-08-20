@@ -40,6 +40,7 @@ env/
 data/dataset/cleaning_data/**
 data/processed/images/**
 data/processed/labels/**
+data/**
 
 
 # Keep directory structure
@@ -89,3 +90,8 @@ logs/
 # Cache
 # ==================================================
 .cache/ 
+tools/export_yolo_wbf_cells.py
+.gitignore
+tools/README.md
+tools/validate_yolo_wbf_notebook.py
+tools/yolo11_wbf_export.py

@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000035.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000035.png",
+      "back_color": "연회색 배경",
+      "id": 202608140035,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003483-022347-027777-035206_0_2_0_2_75_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 12932,
+      "iscrowd": 0,
+      "bbox": [
+        651,
+        871,
+        161,
+        104
+      ],
+      "category_id": 12247,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400103,
+      "image_id": 202608140035,
+      "source_object": "K-012247_0_1_0_0_90_040_200.png"
+    },
+    {
+      "area": 31208,
+      "iscrowd": 0,
+      "bbox": [
+        415,
+        236,
+        252,
+        187
+      ],
+      "category_id": 31885,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400104,
+      "image_id": 202608140035,
+      "source_object": "K-031885_0_0_1_2_75_140_200.png"
+    },
+    {
+      "area": 27068,
+      "iscrowd": 0,
+      "bbox": [
+        191,
+        711,
+        134,
+        249
+      ],
+      "category_id": 33009,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400105,
+      "image_id": 202608140035,
+      "source_object": "K-033009_0_2_1_0_90_260_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12247,
+      "name": "아빌리파이정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 31885,
+      "name": "자누메트엑스알서방정 100/1000mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33009,
+      "name": "신바로정"
+    }
+  ]
+}

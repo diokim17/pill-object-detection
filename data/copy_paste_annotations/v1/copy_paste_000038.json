@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000038.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000038.png",
+      "back_color": "연회색 배경",
+      "id": 202608140038,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-003832-016262_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 21815,
+      "iscrowd": 0,
+      "bbox": [
+        501,
+        129,
+        109,
+        243
+      ],
+      "category_id": 27993,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400112,
+      "image_id": 202608140038,
+      "source_object": "K-027993_0_2_0_1_75_240_200.png"
+    },
+    {
+      "area": 27376,
+      "iscrowd": 0,
+      "bbox": [
+        589,
+        764,
+        231,
+        182
+      ],
+      "category_id": 24850,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400113,
+      "image_id": 202608140038,
+      "source_object": "K-024850_0_1_1_1_60_060_200.png"
+    },
+    {
+      "area": 46349,
+      "iscrowd": 0,
+      "bbox": [
+        168,
+        682,
+        244,
+        244
+      ],
+      "category_id": 3743,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400114,
+      "image_id": 202608140038,
+      "source_object": "K-003743_0_0_1_0_90_200_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 3743,
+      "name": "알드린정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 24850,
+      "name": "놀텍정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27993,
+      "name": "졸로푸트정 100mg"
+    }
+  ]
+}

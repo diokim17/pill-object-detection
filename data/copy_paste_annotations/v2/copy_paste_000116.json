@@ -1,0 +1,88 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000116.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000116.png",
+      "back_color": "연회색 배경",
+      "id": 202608150016,
+      "augmentation": "copy_paste_v2",
+      "background_source_file": "K-003351-003832-038162_0_2_0_2_70_000_200.png",
+      "background_patch": [
+        80,
+        640,
+        300,
+        860
+      ]
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 15130,
+      "iscrowd": 0,
+      "bbox": [
+        583,
+        743,
+        135,
+        139
+      ],
+      "category_id": 16232,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500046,
+      "image_id": 202608150016,
+      "source_object": "K-016232_0_2_0_0_60_100_200.png"
+    },
+    {
+      "area": 37931,
+      "iscrowd": 0,
+      "bbox": [
+        105,
+        720,
+        220,
+        221
+      ],
+      "category_id": 16262,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500047,
+      "image_id": 202608150016,
+      "source_object": "K-016262_0_0_1_1_70_260_200.png"
+    },
+    {
+      "area": 24388,
+      "iscrowd": 0,
+      "bbox": [
+        298,
+        264,
+        232,
+        140
+      ],
+      "category_id": 32310,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081500048,
+      "image_id": 202608150016,
+      "source_object": "K-032310_0_0_0_1_70_040_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 16232,
+      "name": "리피토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16262,
+      "name": "크레스토정 20mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 32310,
+      "name": "글리아타민연질캡슐"
+    }
+  ]
+}

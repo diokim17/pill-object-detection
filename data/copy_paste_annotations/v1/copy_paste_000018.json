@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000018.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000018.png",
+      "back_color": "연회색 배경",
+      "id": 202608140018,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-036637-041768_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 25118,
+      "iscrowd": 0,
+      "bbox": [
+        317,
+        210,
+        224,
+        196
+      ],
+      "category_id": 13395,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400052,
+      "image_id": 202608140018,
+      "source_object": "K-013395_0_1_0_0_60_020_200.png"
+    },
+    {
+      "area": 46742,
+      "iscrowd": 0,
+      "bbox": [
+        109,
+        777,
+        242,
+        241
+      ],
+      "category_id": 25438,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400053,
+      "image_id": 202608140018,
+      "source_object": "K-025438_0_1_0_0_60_020_200.png"
+    },
+    {
+      "area": 31716,
+      "iscrowd": 0,
+      "bbox": [
+        587,
+        753,
+        201,
+        203
+      ],
+      "category_id": 4543,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400054,
+      "image_id": 202608140018,
+      "source_object": "K-004543_0_0_0_1_75_040_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 4543,
+      "name": "에어탈정(아세클로페낙)"
+    },
+    {
+      "supercategory": "pill",
+      "id": 13395,
+      "name": "써스펜8시간이알서방정 650mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 25438,
+      "name": "큐시드정 31.5mg/PTP"
+    }
+  ]
+}

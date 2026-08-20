@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000020.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000020.png",
+      "back_color": "연회색 배경",
+      "id": 202608140020,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003483-025367-025469-035206_0_2_0_2_75_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 30219,
+      "iscrowd": 0,
+      "bbox": [
+        565,
+        722,
+        259,
+        145
+      ],
+      "category_id": 16551,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400058,
+      "image_id": 202608140020,
+      "source_object": "K-016551_0_0_1_2_60_020_200.png"
+    },
+    {
+      "area": 21576,
+      "iscrowd": 0,
+      "bbox": [
+        208,
+        851,
+        204,
+        138
+      ],
+      "category_id": 12247,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400059,
+      "image_id": 202608140020,
+      "source_object": "K-012247_0_1_0_1_60_060_200.png"
+    },
+    {
+      "area": 33075,
+      "iscrowd": 0,
+      "bbox": [
+        421,
+        124,
+        243,
+        227
+      ],
+      "category_id": 27926,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400060,
+      "image_id": 202608140020,
+      "source_object": "K-027926_0_1_0_1_75_000_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 12247,
+      "name": "아빌리파이정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 16551,
+      "name": "동아가바펜틴정 800mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27926,
+      "name": "울트라셋이알서방정"
+    }
+  ]
+}

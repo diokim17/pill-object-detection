@@ -1,0 +1,82 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000033.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000033.png",
+      "back_color": "연회색 배경",
+      "id": 202608140033,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003351-019232-029667_0_2_1_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 25533,
+      "iscrowd": 0,
+      "bbox": [
+        162,
+        683,
+        181,
+        219
+      ],
+      "category_id": 19552,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400097,
+      "image_id": 202608140033,
+      "source_object": "K-019552_0_2_1_0_75_260_200.png"
+    },
+    {
+      "area": 28267,
+      "iscrowd": 0,
+      "bbox": [
+        680,
+        698,
+        190,
+        190
+      ],
+      "category_id": 22347,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400098,
+      "image_id": 202608140033,
+      "source_object": "K-022347_0_0_0_0_90_100_200.png"
+    },
+    {
+      "area": 22480,
+      "iscrowd": 0,
+      "bbox": [
+        332,
+        155,
+        185,
+        173
+      ],
+      "category_id": 19861,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400099,
+      "image_id": 202608140033,
+      "source_object": "K-019861_0_0_0_2_90_340_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 19552,
+      "name": "트루비타정 60mg/병"
+    },
+    {
+      "supercategory": "pill",
+      "id": 19861,
+      "name": "노바스크정 5mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 22347,
+      "name": "자누비아정 50mg"
+    }
+  ]
+}

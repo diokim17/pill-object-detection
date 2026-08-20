@@ -1,0 +1,103 @@
+{
+  "images": [
+    {
+      "file_name": "copy_paste_000060.png",
+      "width": 976,
+      "height": 1280,
+      "imgfile": "copy_paste_000060.png",
+      "back_color": "연회색 배경",
+      "id": 202608140060,
+      "augmentation": "copy_paste",
+      "background_source_file": "K-003483-020877-031885-036637_0_2_0_2_70_000_200.png"
+    }
+  ],
+  "type": "instances",
+  "annotations": [
+    {
+      "area": 27437,
+      "iscrowd": 0,
+      "bbox": [
+        617,
+        335,
+        141,
+        250
+      ],
+      "category_id": 27926,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400187,
+      "image_id": 202608140060,
+      "source_object": "K-027926_0_2_1_0_60_300_200.png"
+    },
+    {
+      "area": 24104,
+      "iscrowd": 0,
+      "bbox": [
+        155,
+        797,
+        149,
+        230
+      ],
+      "category_id": 24850,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400188,
+      "image_id": 202608140060,
+      "source_object": "K-024850_0_1_0_0_90_100_200.png"
+    },
+    {
+      "area": 27648,
+      "iscrowd": 0,
+      "bbox": [
+        555,
+        878,
+        188,
+        189
+      ],
+      "category_id": 22347,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400189,
+      "image_id": 202608140060,
+      "source_object": "K-022347_0_1_1_0_90_180_200.png"
+    },
+    {
+      "area": 30295,
+      "iscrowd": 0,
+      "bbox": [
+        146,
+        205,
+        196,
+        199
+      ],
+      "category_id": 33208,
+      "ignore": 0,
+      "segmentation": [],
+      "id": 2026081400190,
+      "image_id": 202608140060,
+      "source_object": "K-033208_0_1_0_2_75_060_200.png"
+    }
+  ],
+  "categories": [
+    {
+      "supercategory": "pill",
+      "id": 22347,
+      "name": "자누비아정 50mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 24850,
+      "name": "놀텍정 10mg"
+    },
+    {
+      "supercategory": "pill",
+      "id": 27926,
+      "name": "울트라셋이알서방정"
+    },
+    {
+      "supercategory": "pill",
+      "id": 33208,
+      "name": "에스원엠프정 20mg"
+    }
+  ]
+}
