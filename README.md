@@ -188,5 +188,5 @@ data/processed/
 ## 📎 Reports
 
 - [보고서](https://docs.google.com/document/d/1O4Djxq3jCNfTaPNF-NwKPnR3JOsLDzJ3zgUpOA7Ltyw/edit?tab=t.0)
-- [발표 자료](https://docs.google.com/presentation/d/1255PhHnBdvr9ZMF-uU0Vt38UNKst6dxwvqRMAqBIFo8/edit?slide=id.p16#slide=id.p16)
-- [실험 기록표](https://docs.google.com/spreadsheets/d/1J9_dE4SCrI2IT4dy5duMgjTgHTYyrKubmzDz2v298zg/edit?gid=1828834460#gid=1828834460)
+- [발표 자료]([https://docs.google.com/presentation/d/1255PhHnBdvr9ZMF-uU0Vt38UNKst6dxwvqRMAqBIFo8/edit?slide=id.p16#slide=id.p16](https://drive.google.com/file/d/1mxFMISxxXrZ0ZjhitfhUiJpCU0IPF8Uy/view?usp=sharing))
+- [실험 기록표]([https://docs.google.com/spreadsheets/d/1J9_dE4SCrI2IT4dy5duMgjTgHTYyrKubmzDz2v298zg/edit?gid=1828834460#gid=1828834460](https://drive.google.com/file/d/1AwIcisf1xv2PL0m_gXmOwdHjnLNsHX3S/view?usp=sharing))
