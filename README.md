@@ -28,7 +28,7 @@
 
 ### 회의록 및 일정
 
-- [회의록](https://docs.google.com/document/d/1NbZmXKJG7K_dmMsLEOKm8Qg8OaqXq9PPsOr-C1_MVJc/edit?tab=t.fwuvz6mbikcq)
+- [회의록 및 협업일지](https://docs.google.com/document/d/1NbZmXKJG7K_dmMsLEOKm8Qg8OaqXq9PPsOr-C1_MVJc/edit?tab=t.fwuvz6mbikcq)
 - [일정 관리](https://docs.google.com/spreadsheets/d/1tYkRh30PQU-JUwD4WYt2OkT3x0hBXk1jCB_lgWlEViM/edit?gid=193608105#gid=193608105)
 
 ## 🗂️ Project Structure
@@ -187,4 +187,6 @@ data/processed/
 
 ## 📎 Reports
 
-최종 보고서와 발표 자료는 README에 링크로 추가할 예정입니다.
+- [보고서](https://docs.google.com/document/d/1O4Djxq3jCNfTaPNF-NwKPnR3JOsLDzJ3zgUpOA7Ltyw/edit?tab=t.0)
+- [발표 자료](https://docs.google.com/presentation/d/1255PhHnBdvr9ZMF-uU0Vt38UNKst6dxwvqRMAqBIFo8/edit?slide=id.p16#slide=id.p16)
+- [실험 기록표](https://docs.google.com/spreadsheets/d/1J9_dE4SCrI2IT4dy5duMgjTgHTYyrKubmzDz2v298zg/edit?gid=1828834460#gid=1828834460)
